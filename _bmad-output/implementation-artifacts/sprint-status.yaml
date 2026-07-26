@@ -1,11 +1,10 @@
 # BMAD implementation sprint status — Agentic Target ID
-# Generated as a mastery/reference snapshot after V1 + local specialist scaffold.
 # planning-artifacts remain canonical for requirements.
 
 project: Drug-Discovery-Agentic-Target-Identification
 working_name: Agentic Target ID
 updated: 2026-07-26
-sprint: v1-pilot-complete
+sprint: v1-complete-maturity-backlog
 
 epics:
   - id: 1
@@ -132,8 +131,98 @@ epics:
       - id: L.9
         status: done
         file: stories/L.9-unified-prompt-domain-consolidation.md
+  - id: M1
+    title: "Agent evals + CloudWatch ops (V1.5)"
+    status: backlog
+    stories:
+      - id: M1.1
+        status: backlog
+        file: stories/M1.1-golden-prompt-eval-suite.md
+      - id: M1.2
+        status: backlog
+        file: stories/M1.2-fr-12-negative-probes-in-eval-harness.md
+      - id: M1.3
+        status: backlog
+        file: stories/M1.3-cloudwatch-dashboard-for-stream-and-tools.md
+      - id: M1.4
+        status: backlog
+        file: stories/M1.4-cloudwatch-alarms-operator-sns.md
+  - id: M2
+    title: "Deep observability + account audit notes (V2 platform)"
+    status: backlog
+    stories:
+      - id: M2.1
+        status: backlog
+        file: stories/M2.1-opentelemetry-traces-stream-runtime-tools.md
+      - id: M2.2
+        status: backlog
+        file: stories/M2.2-custom-metrics-latency-tool-errors-tokens.md
+      - id: M2.3
+        status: backlog
+        file: stories/M2.3-alert-runbook-not-on-call.md
+      - id: M2.4
+        status: backlog
+        file: stories/M2.4-cloudtrail-enablement-notes.md
+      - id: M2.5
+        status: backlog
+        file: stories/M2.5-bedrock-lambda-spend-alarms.md
+  - id: M3
+    title: "Optional retrieval and tool growth (V2 product, gated)"
+    status: backlog
+    stories:
+      - id: M3.1
+        status: backlog
+        file: stories/M3.1-retrieval-need-decision-record.md
+      - id: M3.2
+        status: backlog
+        file: stories/M3.2-vector-store-spike-gated.md
+      - id: M3.3
+        status: backlog
+        file: stories/M3.3-gateway-tool-4-candidate-spike.md
+  - id: M4
+    title: "Release engineering, SRE, events (V3 ops)"
+    status: backlog
+    stories:
+      - id: M4.1
+        status: backlog
+        file: stories/M4.1-staging-environment-and-promote-path.md
+      - id: M4.2
+        status: backlog
+        file: stories/M4.2-blue-green-or-traffic-shift.md
+      - id: M4.3
+        status: backlog
+        file: stories/M4.3-slo-definitions-always-on.md
+      - id: M4.4
+        status: backlog
+        file: stories/M4.4-load-concurrency-smoke.md
+      - id: M4.5
+        status: backlog
+        file: stories/M4.5-eventbridge-before-kafka.md
+      - id: M4.6
+        status: backlog
+        file: stories/M4.6-kafka-msk-adoption-gate.md
+  - id: M5
+    title: "Security hardening beyond V1 baseline"
+    status: backlog
+    stories:
+      - id: M5.1
+        status: backlog
+        file: stories/M5.1-lightweight-threat-model.md
+      - id: M5.2
+        status: backlog
+        file: stories/M5.2-cloudfront-waf-managed-rules-optional.md
+      - id: M5.3
+        status: backlog
+        file: stories/M5.3-cognito-federation-sso-spike.md
+      - id: M5.4
+        status: backlog
+        file: stories/M5.4-secrets-manager-pattern-for-api-keys.md
+      - id: M5.5
+        status: backlog
+        file: stories/M5.5-ha-multi-az-expectations-doc.md
 
 notes:
   - V1 cloud path (Epics 1–6) implemented and smoked; app stacks destroyed after pilot.
   - Epic L specialists are local-only scaffolds with PRD addendum §K; production remains unified-research-agent.
+  - Epics M1–M5 are post-V1 platform maturity backlog (addendum §L / epics-platform-maturity.md); not required for SM-1…SM-5.
   - These implementation-artifacts are intentionally committed as a BMAD reference set.

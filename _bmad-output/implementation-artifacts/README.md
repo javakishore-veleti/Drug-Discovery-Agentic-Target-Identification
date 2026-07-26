@@ -17,12 +17,14 @@ V1 was built largely in Cursor task-mode against `epics.md`. For BMAD mastery an
 
 ## Counts
 
-- Epic 1–6 stories: **23** (`1.1`–`6.4`)
-- Epic L stories: **9** (`L.1`–`L.9`)
-- Total story files: **32**
+- Epic 1–6 stories: **23** (`1.1`–`6.4`) — `done`
+- Epic L stories: **9** (`L.1`–`L.9`) — `done` (local specialists)
+- Epic M1–M5 stories: **23** (`M1.1`–`M5.5`) — **`backlog`** (platform maturity; see `epics-platform-maturity.md`)
+- Total story files: **55**
 
 ## Usage
 
 - Read `sprint-status.yaml` for the board.
-- Open any `stories/{id}-*.md` for a completed-story example.
-- For new work, prefer `bmad-dev-story` so future stories are written live into this folder.
+- Open any `stories/{id}-*.md` for a story example (`done` or `backlog`).
+- Start maturity work from **M1.1** (evals) only when you intentionally leave pure destroy-when-idle demos.
+- For new work, prefer `bmad-dev-story` so story files are updated live during implementation.

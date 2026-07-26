@@ -6,6 +6,8 @@
 
 V1 product success remains SM-1…SM-5 (deploy → Herceptin demo → destroy). This file is **not** a commitment to build everything below.
 
+**BMAD backlog (generated):** Epics/stories → [`epics-platform-maturity.md`](epics-platform-maturity.md) · PM-FRs → PRD [`addendum.md`](prds/prd-Drug-Discovery-Agentic-Target-Identification-2026-07-25/addendum.md) §L · story files → `_bmad-output/implementation-artifacts/stories/M*.md` (status `backlog`).
+
 ---
 
 ## Maturity ladder

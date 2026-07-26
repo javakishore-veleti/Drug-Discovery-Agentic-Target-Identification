@@ -18,6 +18,8 @@ excludedDocuments:
 
 This document provides the complete epic and story breakdown for Agentic Target ID (Drug-Discovery-Agentic-Target-Identification), decomposing the requirements from the PRD, Architecture spine, brief, and README (secondary positioning/demo prompts only) into implementable stories.
 
+**Related (not V1):** Local specialists → `epics-local-specialists.md` (Epic L). Post-V1 platform maturity (evals, OTel, SRE, vector, Kafka, …) → `epics-platform-maturity.md` (Epics M1–M5, backlog).
+
 ## Requirements Inventory
 
 ### Functional Requirements

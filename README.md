@@ -99,7 +99,13 @@ This repo uses **[BMAD Method](https://github.com/bmad-code-org/BMAD-METHOD)** f
 | [`_bmad-output/planning-artifacts/`](_bmad-output/planning-artifacts/) | **What & how** — requirements + design + epic breakdown | `prds/.../prd.md`, `architecture/.../ARCHITECTURE-SPINE.md`, `epics.md` |
 | [`_bmad-output/implementation-artifacts/`](_bmad-output/implementation-artifacts/) | **Build execution** — sprint board + per-story completion | `sprint-status.yaml`, `stories/*.md` |
 
-**V1 vs later platform work:** Evals, OpenTelemetry, Grafana/ELK, CloudTrail productization, blue/green, Kafka, SRE/SLOs, HA SLAs, and vector DBs are **intentionally out of V1**. See the maturity ladder in [`_bmad-output/planning-artifacts/roadmap-platform-maturity.md`](_bmad-output/planning-artifacts/roadmap-platform-maturity.md) — do not expect them in the PRD.
+**V1 vs later platform work:** Evals, OpenTelemetry, Grafana/ELK, CloudTrail productization, blue/green, Kafka, SRE/SLOs, HA SLAs, and vector DBs are **intentionally out of V1**. See:
+
+- Ladder / rationale: [`roadmap-platform-maturity.md`](_bmad-output/planning-artifacts/roadmap-platform-maturity.md)
+- BMAD epics + ACs: [`epics-platform-maturity.md`](_bmad-output/planning-artifacts/epics-platform-maturity.md) (Epics **M1–M5**, stories `M1.1`…`M5.5`, status **backlog**)
+- Lightweight FRs: PRD [`addendum.md`](_bmad-output/planning-artifacts/prds/prd-Drug-Discovery-Agentic-Target-Identification-2026-07-25/addendum.md) §L (PM-FR-1…22)
+
+Do not expect those chapters inside the V1 PRD body.
 
 ### If you know Kiro’s `.kiro/specs/<feature>/` layout
 

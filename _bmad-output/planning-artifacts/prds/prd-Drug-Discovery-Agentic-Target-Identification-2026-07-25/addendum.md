@@ -179,3 +179,45 @@ OpenFDA, PubChem, UniProt, STRING, Ensembl, GTEx, GEO, Reactome, KEGG, PDB, Alph
 - Short architecture note: `_bmad-output/planning-artifacts/architecture/architecture-note-local-specialists-2026-07-26.md`
 
 **[ASSUMPTION]** Specialist “done” for V1 means meeting LA ACs locally; cloud SM-1 continues to validate only unified-research-agent + platform FRs.
+
+## L. Platform maturity backlog (2026-07-26 Fast-path)
+
+**Intent:** Capture post-V1 platform/product maturity requirements as lightweight **PM-FRs** without expanding V1 FR-1–FR-21. Full story ACs live in `epics-platform-maturity.md`. Catalog/rationale: `roadmap-platform-maturity.md`.
+
+**V1 unchanged:** Destroy-when-not-demoing, exactly three Gateway tools, no vector DB on hot path, no hard SLAs, baseline Cognito + Stream security remain.
+
+### L.1 PM-FR index
+
+| ID | Epic | Requirement (summary) |
+| --- | --- | --- |
+| PM-FR-1 | M1 | Golden-prompt eval suite (MoA, follow-up/risk, clinical refusal) with pass/fail report |
+| PM-FR-2 | M1 | FR-12 negative probes fail the suite on actionable clinical orders |
+| PM-FR-3 | M1 | CloudWatch dashboard for Stream + tool errors/duration |
+| PM-FR-4 | M1 | Optional CloudWatch alarms (SNS/email); no on-call required |
+| PM-FR-5 | M2 | OpenTelemetry (or X-Ray) traces Stream → Runtime → tools |
+| PM-FR-6 | M2 | Custom metrics: turn latency, tool errors, tokens when available |
+| PM-FR-7 | M2 | Alert→debug runbook (no 24×7 obligation) |
+| PM-FR-8 | M2 | CloudTrail enablement documented at account level |
+| PM-FR-9 | M2 | Bedrock/Lambda spend or budget alarms documented |
+| PM-FR-10 | M3 | Written decision before any vector DB/RAG |
+| PM-FR-11 | M3 | Optional RAG spike only if PM-FR-10 adopts; feature-flaggable |
+| PM-FR-12 | M3 | Optional Gateway tool #4 under shared error/`ids` contract + eval coverage |
+| PM-FR-13 | M4 | Staging environment + promote path |
+| PM-FR-14 | M4 | Blue/green or traffic-shift for Runtime/UI with rollback docs |
+| PM-FR-15 | M4 | SLOs for always-on envs only (not destroy-when-idle demos) |
+| PM-FR-16 | M4 | Modest authenticated load/concurrency smoke |
+| PM-FR-17 | M4 | EventBridge before Kafka; Kafka only with decision record |
+| PM-FR-18 | M5 | Lightweight threat model (STRIDE-style) |
+| PM-FR-19 | M5 | Optional CloudFront WAF managed rules |
+| PM-FR-20 | M5 | Cognito SAML/OIDC federation spike path |
+| PM-FR-21 | M5 | Secrets Manager pattern for future API keys |
+| PM-FR-22 | M5 | Honest HA/multi-AZ expectations (no false product SLAs) |
+
+### L.2 Pointers
+
+- Epics + stories: `_bmad-output/planning-artifacts/epics-platform-maturity.md`
+- Roadmap ladder: `_bmad-output/planning-artifacts/roadmap-platform-maturity.md`
+- Architecture note: `_bmad-output/planning-artifacts/architecture/architecture-note-platform-maturity-2026-07-26.md`
+- Backlog story files: `_bmad-output/implementation-artifacts/stories/M*.md`
+
+**[ASSUMPTION]** Starting any M\* epic is optional and does not reopen V1 acceptance; SM-1…SM-5 remain the V1 bar.
