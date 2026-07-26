@@ -1,192 +1,130 @@
-# Drug-Discovery-Agentic-Target-Identification
-Agentic drug-discovery **research-assist** pilot for early target identification. Researchers chat with a Bedrock AgentCore agent that calls governed biomedical MCP tools to synthesize public evidence (literature, trials, chemistry, optional Open Targets).
+# Agentic Target ID
 
-## What is target identification?
+**Agentic AI** research-assist pilot for early **drug-discovery target identification**, built with **BMAD Method** specs and **AWS Bedrock AgentCore**.
 
-**Target identification** is a core early-stage **drug discovery** concept.
+Scientists chat in natural language. A single **Unified Research Agent** plans tool use, streams live `tool_use` / answer events, and cites public source IDs (PMID / NCT / ChEMBL; optional Ensembl via Open Targets)—without the browser ever calling AgentCore directly.
 
-In pharmaceutical R&D, a **target** is usually a biological molecule (often a protein, gene, or pathway node) believed to be causally linked to a disease and modulable by a drug. Target identification is the work of finding and justifying that target before heavy investment in chemistry and clinical development.
+> Research assistance only. **Not** medical advice, clinical decision support, or a validated-target ranking product.
 
-Typical questions include:
+## Why agentic (not a chatbot wrapper)
 
-- What drives the disease biology?
-- Is this protein or pathway druggable?
-- What happens if we inhibit or activate it (efficacy and safety)?
-- Which patients benefit most?
-- Are there patents, prior art, or competing approaches?
+| Capability | What you get |
+| --- | --- |
+| **Plan → act → synthesize** | Agent selects biomedical tools, reads results, answers with citations |
+| **Visible tool use** | SSE Stream Events show which Gateway tools ran |
+| **Governed tools** | MCP-style AgentCore Gateway; shared timeout / 429 / `status: error` contract |
+| **Multi-turn memory** | Same Chat Session follow-ups keep Herceptin/HER2 context |
+| **Secure cloud path** | Cognito → Identity Pool → **SigV4** Stream Lambda → Runtime (AD-1) |
+| **Spec-driven** | BMAD planning + implementation artifacts (not Kiro) |
 
-It sits early in the pipeline:
-
-**Disease biology → Target identification → Target validation → Hit/lead discovery → Optimization → Preclinical → Clinical**
-
-## About this platform
-
-This project is an AI-powered drug discovery platform that helps pharmaceutical R&D teams accelerate target identification, risk assessment, and drug design hypothesis generation through intelligent analysis of biomedical literature and databases.
-
-Researchers interact through a secure chat interface. A unified research agent on **AWS Bedrock AgentCore** selects and calls specialized biomedical tools (via an MCP-style gateway) to synthesize evidence across mechanisms, patient risk, pathways, safety, and design options.
-
-## Problem
-
-Target identification accounts for a large share of cost and failure risk in drug development. Critical evidence is scattered across literature, clinical registries, chemistry databases, protein networks, and safety sources. This platform unifies that work into an agentic research workflow so scientists can ask multi-domain questions and get evidence-backed answers faster.
-
-## Architecture
+## Cloud architecture (AWS)
 
 ```text
-Researcher
-  → React UI (CloudFront + S3)
-  → Amazon Cognito (auth)
-  → Stream Lambda (SSE / SigV4)
-  → Bedrock AgentCore Runtime (Unified Research Agent)
-       → Foundation model (Claude on Amazon Bedrock)
-       → AgentCore Memory (session context)
-       → AgentCore Gateway (MCP tools)
-            → Biomedical APIs (PubMed, ClinicalTrials.gov, ChEMBL; optional Open Targets)
+Scientist (browser)
+  → React UI (CloudFront + S3) + Cognito
+  → Stream Lambda (SSE / SigV4 Function URL)
+  → Bedrock AgentCore Runtime  ← Claude on Amazon Bedrock
+       ├─ AgentCore Memory (in-session)
+       └─ AgentCore Gateway (MCP tools)
+            → PubMed · ClinicalTrials.gov · ChEMBL
+            → optional Open Targets (-c enableTool4=true)
 ```
 
-### Core components
+**Building blocks:** Bedrock + AgentCore Runtime/Gateway/Memory · Lambda Stream bridge · Cognito · CDK · CloudWatch ops (dashboard/alarms/X-Ray/EMF when Ops stack is deployed).
 
-| Layer | Technology | Role |
-|-------|------------|------|
-| Frontend | React + TypeScript | Research chat UI |
-| Auth | Amazon Cognito | User authentication |
-| Stream API | AWS Lambda (Function URL) | Secure streaming bridge to the agent |
-| Agent runtime | Bedrock AgentCore + Strands SDK | Reasoning, tool selection, synthesis |
-| Model | Claude on Amazon Bedrock | LLM inference |
-| Tools | AgentCore Gateway + Lambda | Biomedical database / API access |
-| Memory | AgentCore Memory / DynamoDB | Conversation and session state |
-| Infra | AWS CDK | Infrastructure as code |
+## Stream Events (live functionality)
 
-### Agent
+The Stream Lambda emits typed SSE events the UI understands:
 
-**Unified Research Agent** — a single multi-domain agent covering:
+`session_started` → optional `reasoning` → `tool_use` / `tool_result` → `token`… → `error`? → `done`
 
-- Drug profile analysis (mechanism, toxicity, PK)
-- Patient risk assessment (populations, biomarkers)
-- Molecular pathway mapping (interactions, networks)
-- Target safety / cardioprotection analysis
-- Drug design hypothesis generation
-- Patent and literature intelligence (where configured)
+- Browser **never** invokes AgentCore Runtime IAM credentials.
+- Tool failures surface as `error` / failed `tool_result`; the session stays usable.
+- Soft stall: UI/client terminals if no `done` within ~5 minutes.
 
-## Key features (honest V1)
+## V1 functionality (honest scope)
 
-- Streaming research chat with **tool-use visibility** and Cognito auth
-- Single **Unified Research Agent** (not a multi-agent cloud swarm)
-- In-session multi-turn memory (no cross-day session list UI)
-- Gateway tools (default deploy):
-  - **PubMed** — literature / PMIDs
-  - **ClinicalTrials.gov** — trials / NCT IDs
-  - **ChEMBL** — chemistry / ChEMBL IDs
-- **Optional tool #4:** Open Targets (`-c enableTool4=true`) — Ensembl target ids
-- Research-assist Disclaimer + agent refusal of actionable clinical orders
-- CDK deploy / destroy lifecycle; CloudWatch ops dashboard when Ops stack is deployed
+**Default Gateway tools (exactly three):**
 
-**Not in the default V1 Gateway** (roadmap / deferred): OpenFDA, UniProt, STRING, Reactome, KEGG, PDB, AlphaFold, USPTO, vector RAG, Kafka, etc. See `docs/tool-4-candidate.md` and `roadmap-platform-maturity.md`.
+1. **pubmed** — literature + `ids.pmid`
+2. **clinicaltrials** — trials + `ids.nct`
+3. **chembl** — chemistry + `ids.chembl`
 
-## Scope (V1 pilot)
+**Optional tool #4:** `opentargets` (Open Targets / Ensembl) via `-c enableTool4=true`.
 
-Research assistance over **public** APIs via a single AgentCore agent. Default = **exactly three** Gateway tools (FR-16). Optional Open Targets is off unless you pass `enableTool4=true`. **Not** clinical-grade decision support, **not** a proprietary knowledge graph, and **not** a validated-target ranking product.
+**Product surface:** Cognito email/password (admin-provisioned users) · research Disclaimer · streamed chat · Herceptin mechanism → cardiotoxicity multi-turn demo · CDK deploy/destroy.
 
-**Operating model:** deploy for demos; **destroy-when-not-demoing** to control idle cost (see [docs/deploy.md](docs/deploy.md)).
+**Explicitly not V1:** multi-agent cloud swarm, vector RAG, Kafka, enterprise SSO (spike docs only), clinical-grade claims, USPTO/pathway DBs in the default Gateway.
 
-## Specs & BMAD artifacts (important)
+Local specialist CLIs under `agents/` exist for domain prompt experiments; **production cloud path remains one Unified Research Agent**.
 
-This repo uses **[BMAD Method](https://github.com/bmad-code-org/BMAD-METHOD)** for spec-driven development (not Kiro). Specs are **not** only under `implementation-artifacts/` — BMAD splits **planning** vs **implementation**.
+## BMAD Method (how this repo is specified)
 
-| Folder | Role | Open these first |
-|--------|------|------------------|
-| [`_bmad-output/planning-artifacts/`](_bmad-output/planning-artifacts/) | **What & how** — requirements + design + epic breakdown | `prds/.../prd.md`, `architecture/.../ARCHITECTURE-SPINE.md`, `epics.md` |
-| [`_bmad-output/implementation-artifacts/`](_bmad-output/implementation-artifacts/) | **Build execution** — sprint board + per-story completion | `sprint-status.yaml`, `stories/*.md` |
+This project is a **BMAD** mastery / reference build (spec-driven), not Kiro.
 
-**V1 vs later platform work:** Evals, OpenTelemetry, Grafana/ELK, CloudTrail productization, blue/green, Kafka, SRE/SLOs, HA SLAs, and vector DBs are **intentionally out of V1**. See:
+| Phase | Where | Role |
+| --- | --- | --- |
+| Planning | [`_bmad-output/planning-artifacts/`](_bmad-output/planning-artifacts/) | Brief, PRD (+ addendum), architecture spine (AD-1…AD-15), epics |
+| Implementation | [`_bmad-output/implementation-artifacts/`](_bmad-output/implementation-artifacts/) | Sprint board + per-story records |
 
-- Ladder / rationale: [`roadmap-platform-maturity.md`](_bmad-output/planning-artifacts/roadmap-platform-maturity.md)
-- BMAD epics + ACs: [`epics-platform-maturity.md`](_bmad-output/planning-artifacts/epics-platform-maturity.md) (Epics **M1–M5**, stories `M1.1`…`M5.5`, status **backlog**)
-- Lightweight FRs: PRD [`addendum.md`](_bmad-output/planning-artifacts/prds/prd-Drug-Discovery-Agentic-Target-Identification-2026-07-25/addendum.md) §L (PM-FR-1…22)
+**Kiro → BMAD map:** `requirements.md` ≈ brief+PRD · `design.md` ≈ architecture spine · `tasks.md` ≈ epics → stories.
 
-Do not expect those chapters inside the V1 PRD body.
+**Maturity (evals, ops, security, staging):** mostly shipped as docs/CDK slices — see [`roadmap-platform-maturity.md`](_bmad-output/planning-artifacts/roadmap-platform-maturity.md), [`epics-platform-maturity.md`](_bmad-output/planning-artifacts/epics-platform-maturity.md), and:
 
-**Maturity in progress:** [`docs/evals.md`](docs/evals.md) · [`docs/ops.md`](docs/ops.md) · [`docs/security.md`](docs/security.md) · [`docs/staging-and-release.md`](docs/staging-and-release.md).
+- [`docs/evals.md`](docs/evals.md) — golden-prompt harness (M1.1 / M1.2)
+- [`docs/ops.md`](docs/ops.md) — CloudWatch dashboard, alarms, X-Ray, EMF metrics
+- [`docs/security.md`](docs/security.md) — threat model, WAF flag, SSO spike notes
+- [`docs/staging-and-release.md`](docs/staging-and-release.md) — staging / SLO drafts / EventBridge-before-Kafka
 
-### If you know Kiro’s `.kiro/specs/<feature>/` layout
+**Vector DB / Kafka:** intentionally **blocked** / **cancelled** until product needs change.
 
-Kiro packs requirements + design + tasks in one feature folder. BMAD spreads the same ideas across two folders:
+## Example research turns
 
-| Kiro file | BMAD equivalent in this repo |
-|-----------|------------------------------|
-| `requirements.md` | `planning-artifacts/briefs/.../brief.md` + `planning-artifacts/prds/.../prd.md` (+ `addendum.md`) |
-| `design.md` | `planning-artifacts/architecture/.../ARCHITECTURE-SPINE.md` (AD-1…AD-15) |
-| `tasks.md` | `planning-artifacts/epics.md` → then `implementation-artifacts/stories/*.md` |
+- What is the mechanism of action of Herceptin?
+- Which patient populations are most vulnerable to its cardiotoxicity? *(follow-up, same session)*
+- Use Open Targets to find ERBB2 / HER2 target evidence and cite Ensembl ids *(needs `enableTool4=true`)*
+- What ChEMBL context exists for trastuzumab / HER2-targeted agents?
 
-**Do not expect requirements/design inside `implementation-artifacts/`.** That folder is stories + sprint status by design. Full product intent and architecture live in `planning-artifacts/`.
+## Deploy (pilot)
 
-Local specialist agents (non-production) are covered in `planning-artifacts/epics-local-specialists.md` and PRD addendum §K. Production cloud path remains the single **Unified Research Agent**.
-
-## Repository layout
-
-```text
-.
-├── _bmad-output/
-│   ├── planning-artifacts/          # Brief, PRD, architecture, epics (requirements + design)
-│   └── implementation-artifacts/    # Sprint status + story completion records
-├── agents/unified-research-agent/   # Strands agent + Runtime image (production path)
-├── agents/                          # Local specialist scaffolds (Epic L; not separate Runtimes)
-├── gateways/database/               # pubmed / clinicaltrials / chembl Lambdas
-├── infra/backend/                   # CDK: Gateway, Runtime, Stream, Auth, Frontend
-├── stream/                          # Stream Lambda + smokes
-├── web/                             # Vite React chat UI
-├── docs/deploy.md                   # Pilot deploy / Outputs / destroy
-└── README.md
-```
-
-## Prerequisites
-
-- AWS account with Amazon Bedrock model access for the pinned model
-- AWS CLI configured with credentials
-- Node.js 20+, Python 3.12+, Docker (Runtime / Lambda bundling)
-- CDK bootstrap once: `cd infra/backend && npx cdk bootstrap`
-
-## Deployment (pilot)
-
-Full steps, Outputs, create-user, Herceptin smoke, and teardown leftovers: **[docs/deploy.md](docs/deploy.md)**.
+**Cost habit:** deploy for demos; **destroy-when-not-demoing**. Full lifecycle: [`docs/deploy.md`](docs/deploy.md).
 
 ```bash
 cd infra/backend
 npm install
 export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
-npx cdk deploy --all --require-approval never -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
+npx cdk bootstrap   # once per account/region if CDKToolkit is absent
+npx cdk deploy --all --require-approval never \
+  -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
+# Optional: -c enableTool4=true  -c enableWaf=true  -c opsAlertEmail=you@example.com
 ```
 
-Open stack Output `FrontendUrl` (HTTPS). Create a Cognito user (`docs/auth.md`), sign in, ask the Herceptin mechanism question, confirm `tool_use` + answer.
-
-When idle:
+Then: create Cognito user ([`docs/auth.md`](docs/auth.md)) → open `FrontendUrl` → Herceptin MoA → confirm live `tool_use` + streamed answer.
 
 ```bash
-cd infra/backend
-npx cdk destroy --all --force
+npx cdk destroy --all --force -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
 ```
 
-CDK bootstrap / log retention leftovers are called out in `docs/deploy.md`.
+### Prerequisites
 
-## Example queries
+- AWS account with Bedrock model access for the pinned Claude model
+- AWS CLI credentials · Node.js 20+ · Python 3.12+ · Docker (Runtime / Lambda bundling)
 
-- What is the mechanism of action of Herceptin?
-- Which patient populations are most vulnerable to Herceptin cardiotoxicity?
-- What proteins interact with HER2 in cardiac tissue?
-- Search for patents related to HER2-targeted antibody therapies
-- How could Herceptin be modified to reduce cardiac binding?
-- Analyze Herceptin’s cardiotoxicity risk and suggest safer targeting strategies
+### Manual CI (not automatic)
 
-## Security notes
+GitHub **Actions → Manual checks → Run workflow** (`workflow_dispatch` only). Runs golden evals `--dry-run`, Python compileall, optional Open Targets adapter smoke—**never** on every push/PR.
 
-- Do not commit `.env`, API keys, or AWS credentials
-- Prefer least-privilege IAM for agent and gateway roles
-- Use Cognito (or your IdP) for user access; do not expose AgentCore invoke from the browser without a signed backend path
+## Security
+
+- No secrets or AWS keys in git
+- Cognito + SigV4 Stream only; no browser→AgentCore Runtime invoke
+- Least-privilege IAM for Stream / Runtime / tool Lambdas
+- Optional CloudFront WAF: `-c enableWaf=true`
 
 ## License
 
-Apache License 2.0 (or your chosen license — update this section).
+[MIT](LICENSE) © 2026 Kishore Veleti
 
 ## Acknowledgments
 
-Biomedical tool patterns draw on public scientific APIs and community projects such as [Stanford Biomni](https://github.com/snap-stanford/Biomni) database tooling concepts, adapted for an AgentCore gateway architecture.
-
+Patterns for biomedical tool access draw on public scientific APIs and community ideas such as [Stanford Biomni](https://github.com/snap-stanford/Biomni) database tooling concepts, adapted here for an AgentCore Gateway architecture.
