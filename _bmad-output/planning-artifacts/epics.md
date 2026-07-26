@@ -1,5 +1,6 @@
 ---
-stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics]
+stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-final-validation]
+workflowStatus: complete
 inputDocuments:
   - _bmad-output/planning-artifacts/briefs/brief-Drug-Discovery-Agentic-Target-Identification-2026-07-25/brief.md
   - _bmad-output/planning-artifacts/prds/prd-Drug-Discovery-Agentic-Target-Identification-2026-07-25/prd.md
@@ -280,3 +281,261 @@ So that V1 scope stays honest and tool failures are consistent for streaming lat
 **Then** only `pubmed`, `clinicaltrials`, and `chembl` are exposed  
 **And** a forced/simulated tool failure returns `status: error` plus tool name and a short safe message (no secrets/stack traces)  
 **And** after a failed tool call in a test session, the agent can accept another prompt/turn without redeploy
+
+## Epic 3: AgentCore Runtime + session memory
+
+Unified Research Agent runs on AgentCore Runtime with pinned model and in-session multi-turn memory.
+
+**FRs covered:** FR10, FR12, FR17  
+**ADs:** AD-2, AD-6, AD-7 (Memory), AD-14
+
+### Story 3.1: Containerize agent for AgentCore Runtime
+
+As a builder,
+I want the Unified Research Agent packaged as a Runtime-deployable container with pinned model config,
+So that cloud execution matches the local agent (AD-2, AD-6).
+
+**Acceptance Criteria:**
+
+**Given** Epic 1–2 agent and Gateway tool integration exist  
+**When** I build the Docker image and deploy/register the AgentCore Runtime  
+**Then** the Runtime uses `BEDROCK_MODEL_ID` set to the pinned model `us.anthropic.claude-sonnet-4-20250514-v1:0` (or documented AD-6 fallback)  
+**And** there is a single Unified Research Agent entrypoint (no multi-agent swarm)  
+**And** the Runtime is configured to reach the AgentCore Gateway tools from Epic 2  
+**And** packaging lives under `agents/unified-research-agent/` per structural seed
+
+### Story 3.2: Wire AgentCore Memory for Chat Session turns
+
+As a scientist,
+I want multi-turn context stored in AgentCore Memory for one session,
+So that follow-ups do not require restating prior context (FR17, AD-7).
+
+**Acceptance Criteria:**
+
+**Given** Runtime from Story 3.1  
+**When** two turns run with the same session key against Runtime  
+**Then** Memory retains prior turn context for the second turn  
+**And** configuration uses env name `AGENTCORE_MEMORY_ID` (no `MEMORY_ID` alias)  
+**And** no session-list or cross-day resume UI is implemented
+
+### Story 3.3: Herceptin multi-turn Runtime smoke (mechanism → cardiotoxicity)
+
+As a scientist,
+I want a Runtime smoke that answers mechanism then a cardiotoxicity follow-up without restating Herceptin,
+So that FR10 and FR17 are proven on AgentCore with research-assist boundaries.
+
+**Acceptance Criteria:**
+
+**Given** Stories 3.1–3.2 and Gateway tools from Epic 2  
+**When** turn 1 asks “What is the mechanism of action of Herceptin?” and turn 2 asks “Which patient populations are most vulnerable to its cardiotoxicity?”  
+**Then** turn 2 remains in Herceptin/HER2 context without requiring the drug name again  
+**And** answers remain research-assist bounded (FR12 / AD-14)  
+**And** Source Identifiers (PMID and/or NCT and/or ChEMBL) appear when corresponding tools return them (FR11)
+
+## Epic 4: Secure streaming research turns
+
+SSE Stream Events via Stream Lambda; Runtime never invoked from the browser; tool failures stream `error` and session continues.
+
+**FRs covered:** FR4, FR5, FR8, FR9  
+**ADs:** AD-1, AD-4, AD-5, AD-7 (`sessionId`), AD-8, AD-12  
+**NFRs:** NFR1, NFR8, NFR9, NFR10
+
+### Story 4.1: Stream Lambda SSE bridge to AgentCore Runtime
+
+As a builder,
+I want a Stream Lambda that invokes Runtime and emits SSE Stream Events,
+So that clients never call AgentCore directly (FR8, AD-1, AD-4).
+
+**Acceptance Criteria:**
+
+**Given** AgentCore Runtime from Epic 3 is available  
+**When** an authenticated test client opens the Stream Lambda Function URL and starts a turn  
+**Then** the response is SSE with event types from `session_started` | `reasoning` | `token` | `tool_use` | `tool_result` | `error` | `done`  
+**And** `session_started` includes a Stream-owned `sessionId` passed through to Runtime/Memory on subsequent events in the turn  
+**And** `done` is emitted only after the Runtime turn stream closes (or hard abort)  
+**And** documentation and client samples do not instruct browser→AgentCore Runtime invoke or embed Runtime IAM credentials
+
+### Story 4.2: Cognito Identity Pool + SigV4 to Function URL
+
+As a builder,
+I want UI→Stream auth via User Pool → Identity Pool → SigV4 IAM on the Function URL,
+So that AD-1 is enforceable before the React UI lands (FR8, NFR1).
+
+**Acceptance Criteria:**
+
+**Given** Cognito User Pool and Identity Pool are wired so authenticated users can obtain temporary credentials authorized for the Stream Function URL  
+**When** a request is SigV4-signed with those Identity Pool credentials  
+**Then** the stream endpoint accepts the request  
+**When** the request is unauthenticated or unsigned  
+**Then** the stream endpoint rejects it  
+**And** a JWT-authorizer-on-Function-URL path is not implemented as a V1 alternate
+
+### Story 4.3: Map tool activity + failures to Stream Events
+
+As a scientist,
+I want visible `tool_use` / `tool_result` and a streamed `error` on tool failure without killing the session,
+So that FR5 and FR9 hold over the stream path (AD-5, AD-8).
+
+**Acceptance Criteria:**
+
+**Given** Stream Lambda from Stories 4.1–4.2 and Gateway tools from Epic 2  
+**When** a turn invokes at least one V1 tool (e.g. PubMed)  
+**Then** at least one `tool_use` event is emitted before `done`  
+**And** corresponding `tool_result` events include `tool`, `status`, and `ids` when status is `ok`  
+**When** a tool failure is forced/simulated  
+**Then** a `tool_result` with `status: error` is emitted, then an `error` Stream Event, and a later turn on the same `sessionId` still works  
+**And** `reasoning` events are emitted only if Runtime/Strands exposes thinking content — never fabricated from answer tokens
+
+### Story 4.4: Stream observability + stall terminal state
+
+As a builder,
+I want structured logs and a soft 5-minute stall terminal,
+So that failed demos are debuggable without leaving infinite spinners (NFR9, NFR10, AD-12).
+
+**Acceptance Criteria:**
+
+**Given** Stream Lambda is handling a turn  
+**When** the turn runs (success or failure)  
+**Then** CloudWatch logs include structured fields `sessionId`, `requestId`, and `tool` when applicable  
+**And** the Stream Lambda log group retention is **7 days**  
+**And** if the stream stalls with no terminal event, the client or test harness shows a terminal error/timeout state within **5 minutes**
+
+## Epic 5: Authenticated research chat
+
+Asha signs in (Cognito), chats with Disclaimer + live tool_use/answer stream (SigV4), follow-up works, signs out.
+
+**FRs covered:** FR1–FR7, FR5, FR17 (E2E)  
+**ADs:** AD-1, AD-10, AD-14  
+**NFRs:** NFR2, NFR4
+
+### Story 5.1: Vite React app scaffold + Cognito sign-in/out
+
+As a scientist,
+I want to sign in with Cognito email/password and sign out,
+So that only authenticated users reach chat (FR1, FR2, FR7, AD-10).
+
+**Acceptance Criteria:**
+
+**Given** Cognito User Pool and app client configuration available to `web/`  
+**When** I open the app and sign in with valid email/password  
+**Then** I can reach the chat surface  
+**When** credentials are invalid  
+**Then** a clear auth error is shown and no Chat Session starts  
+**When** I sign out  
+**Then** subsequent chat/stream actions require sign-in again  
+**And** the UI does not offer public self-registration  
+**And** docs or README reference manual admin/CLI create-user using pool/client outputs (FR2)
+
+### Story 5.2: Chat UI with Disclaimer + SigV4 stream client
+
+As a scientist,
+I want a chat page that shows the research Disclaimer and streams turns via SigV4 to the Stream URL,
+So that FR3–FR6 and AD-1 hold in the UI.
+
+**Acceptance Criteria:**
+
+**Given** an authenticated user from Story 5.1 and Stream URL + Identity Pool from Epic 4  
+**When** I open the chat surface  
+**Then** the approved Disclaimer is visible without requiring a separate legal-only page as the sole placement  
+**When** I submit a non-empty message  
+**Then** a stream turn starts using Cognito Identity Pool credentials + SigV4 to the Function URL (not Runtime IAM in the browser)  
+**When** I submit an empty message  
+**Then** the agent/stream is not invoked  
+**And** the UI renders `token` text progressively, renders `reasoning` if present, and ignores unknown Stream Event types without crashing
+
+### Story 5.3: Render tool_use / tool_result / error in the transcript
+
+As a scientist,
+I want live tool activity and errors in the UI,
+So that tool-use visibility and failure continuity are obvious (FR5, FR9).
+
+**Acceptance Criteria:**
+
+**Given** the chat UI from Story 5.2  
+**When** a turn invokes a V1 Gateway Tool  
+**Then** the UI shows the tool name from at least one `tool_use` event before or while the answer streams  
+**When** an `error` Stream Event is received (e.g. forced tool failure)  
+**Then** the UI shows a safe error message and does not crash  
+**And** I can submit another message in the same Chat Session after the failed turn
+
+### Story 5.4: Herceptin E2E multi-turn in the UI
+
+As a scientist,
+I want mechanism → cardiotoxicity follow-up in the hosted chat,
+So that UJ-1 and FR17 work end-to-end with source traceability.
+
+**Acceptance Criteria:**
+
+**Given** Stories 5.1–5.3 and backend from Epics 2–4  
+**When** after login I ask “What is the mechanism of action of Herceptin?”  
+**Then** I see `tool_use` activity and a streamed answer, with PMID/NCT/ChEMBL IDs surfaced when tools returned them  
+**When** I ask a follow-up “Which patient populations are most vulnerable to its cardiotoxicity?” without restating the drug name  
+**Then** the answer remains in Herceptin/HER2 context  
+**And** if the stream stalls with no terminal event, the UI shows a terminal error/timeout within **5 minutes**
+
+## Epic 6: Deployable pilot lifecycle
+
+Dev CDK-deploys the slice, uses documented Outputs, runs smoke demo, destroys cleanly.
+
+**FRs covered:** FR18–FR21  
+**ADs:** AD-11, AD-12, AD-13  
+**NFRs:** NFR3, NFR12, NFR13
+
+### Story 6.1: CDK Backend stack (auth, stream, runtime, gateway, tools, memory)
+
+As a builder,
+I want a TypeScript CDK Backend that wires Cognito + Identity Pool, Stream Function URL, Runtime, Gateway + 3 tools, Memory, and least-privilege IAM with 7-day logs,
+So that the cloud path is deployable as one unit (FR18, AD-11, AD-12).
+
+**Acceptance Criteria:**
+
+**Given** application code from Epics 1–5 exists as deployable assets  
+**When** I run the documented Backend `cdk deploy` in `us-east-1` (or CDK context region) with Bedrock model access enabled  
+**Then** the Backend stack deploys successfully  
+**And** Outputs include at least `UserPoolId`, `UserPoolClientId`, `IdentityPoolId`, `StreamUrl` (plus Runtime/Gateway identifiers needed to operate)  
+**And** IAM roles follow AD-12 (Stream invokes Runtime + logs; Runtime invokes Bedrock pin + Gateway + Memory + logs; each tool Lambda only its API + logs)  
+**And** CloudWatch log groups created by the app use **7-day** retention  
+**And** no secrets, API keys, or AWS credentials are committed to the repo (NFR3)
+
+### Story 6.2: CDK Frontend stack (S3 + CloudFront + web config)
+
+As a builder,
+I want Frontend hosting for `web/` with CloudFront HTTPS and injected config,
+So that Asha can open the demo URL (FR18, NFR4, AD-11).
+
+**Acceptance Criteria:**
+
+**Given** Backend Outputs from Story 6.1 and a production Vite build of `web/`  
+**When** I deploy the Frontend stack  
+**Then** S3 + CloudFront host the app and Output `FrontendUrl` is published  
+**And** the deployed app is configured with Cognito User Pool/Client, Identity Pool, and Stream URL from Backend Outputs  
+**And** the site is served over HTTPS via CloudFront
+
+### Story 6.3: Documented Outputs + create-user + smoke path
+
+As a builder,
+I want docs for Outputs, admin user create, and Herceptin smoke,
+So that a demo works in under 15 minutes after deploy (FR19, FR21, SM-1).
+
+**Acceptance Criteria:**
+
+**Given** Backend and Frontend are deployed  
+**When** I follow `docs/` (and/or README) install/deploy/create-user/smoke instructions alone  
+**Then** required CDK Outputs are listed with how to use them  
+**And** Cognito admin/CLI create-user steps succeed using those Outputs  
+**And** the smoke path covers login → Herceptin mechanism question → visible `tool_use` + streamed answer  
+**And** docs use honest scope language (research assist; not clinical-grade / proprietary KG / validated-target platform)
+
+### Story 6.4: CDK destroy + teardown docs
+
+As a builder,
+I want `cdk destroy` to remove app stacks and docs that call out leftovers,
+So that idle cost stays controlled (FR20, NFR12).
+
+**Acceptance Criteria:**
+
+**Given** app stacks from Stories 6.1–6.2 are deployed  
+**When** I run the documented destroy command(s)  
+**Then** Backend and Frontend application stacks are removed  
+**And** docs note any retained resources (e.g. CDK bootstrap, log groups retention leftovers)  
+**And** README/docs emphasize destroy-when-not-demoing as the default operating model

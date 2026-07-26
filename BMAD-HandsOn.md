@@ -753,5 +753,147 @@ Approve Epic 3 (or edits)? I’ll append and propose Epic 4.
 
 ## Step  - 19 - My Reply To Cursor
 ```text
+Approve Epic 3 as proposed (Stories 3.1–3.3).
+
+Append Epic 3 and propose Epic 4.
+```
+## Step  - 19 - Cursor Reply
+```text
+Epic 3 appended (Stories 3.1–3.3).
+
+Epic 4: Secure streaming research turns
+Goal: SSE Stream Events via Stream Lambda; no browser→Runtime; tool failures stream error and session continues.
+FRs: FR4, FR5, FR8, FR9 · ADs: AD-1, AD-4, AD-5, AD-7 (sessionId), AD-8, AD-12 · NFRs: NFR1, NFR8–NFR10
+
+Proposed stories
+Story 4.1: Stream Lambda SSE bridge to AgentCore Runtime
+As a builder, I want a Stream Lambda that invokes Runtime and emits SSE Stream Events, so that clients never call AgentCore directly (FR8, AD-1, AD-4).
+ACs: Given Runtime from Epic 3 · When an authenticated test client hits the Function URL stream · Then events use types session_started | reasoning? | token | tool_use | tool_result | error | done · And session_started includes Stream-owned sessionId · And done emits only after Runtime turn ends · And browser/docs never use Runtime IAM.
+
+Story 4.2: Cognito Identity Pool + SigV4 to Function URL
+As a builder, I want UI→Stream auth via User Pool → Identity Pool → SigV4 IAM on the Function URL, so that AD-1 is enforceable before the React UI lands (FR8, NFR1).
+ACs: Given Cognito pool + Identity Pool wired to Stream IAM · When request is SigV4-signed with IdP creds · Then stream succeeds · When unauthenticated/unsigned · Then rejected · And JWT-authorizer path is not implemented as V1 alternate.
+
+Story 4.3: Map tool activity + failures to Stream Events
+As a scientist, I want visible tool_use / tool_result and streamed error on tool failure without killing the session, so that FR5/FR9 hold (AD-8, AD-5).
+ACs: Given a tool-calling turn · When PubMed (or any V1 tool) runs · Then at least one tool_use appears before done · And on forced tool failure: tool_result status=error then error event; later turn still works · And reasoning omitted if runtime has none (never fabricated).
+
+Story 4.4: Stream observability + stall terminal state
+As a builder, I want structured logs and a soft 5-minute stall terminal, so that failed demos are debuggable (NFR9, NFR10, AD-12).
+ACs: Given Stream Lambda · When a turn runs · Then logs include sessionId, requestId, and tool when applicable · And log retention is 7 days · And if stream stalls with no terminal event, client/test harness shows terminal error within 5 minutes.
+
+Approve Epic 4 (or edits)? I’ll append and propose Epic 5.
+```
+
+## Step  - 20 - My Reply
+```text
+Approve Epic 4 as proposed (Stories 4.1–4.4).
+
+Append Epic 4 and propose Epic 5.
+```
+
+## Step  - 20 - Cursor Reply
+```text
+Epic 4 appended (Stories 4.1–4.4).
+
+Epic 5: Authenticated research chat
+Goal: Asha signs in, chats with Disclaimer + live tool_use/answer stream (SigV4), follow-up works, signs out.
+FRs: FR1–FR7, FR5, FR17 (E2E) · ADs: AD-1, AD-10, AD-14 · NFRs: NFR2, NFR4
+
+Proposed stories
+Story 5.1: Vite React app scaffold + Cognito sign-in/out
+As a scientist, I want to sign in with Cognito email/password and sign out, so that only authenticated users reach chat (FR1, FR2, FR7, AD-10).
+ACs: Given User Pool + app client from infra/config · When I sign in with valid credentials · Then chat surface is reachable · Invalid creds fail clearly · Sign-out requires sign-in again · No self-signup UI · Manual admin create-user documented/referenced.
+
+Story 5.2: Chat UI with Disclaimer + SigV4 stream client
+As a scientist, I want a chat page that shows the research Disclaimer and streams turns via SigV4 to Stream URL, so that FR3–FR6 and AD-1 hold in the UI.
+ACs: Disclaimer always visible (approved copy) · Non-empty submit starts stream · Empty submit does not · Client uses Identity Pool + SigV4 (not Runtime IAM) · Renders token / optional reasoning / ignores unknown types.
+
+Story 5.3: Render tool_use / tool_result / error in the transcript
+As a scientist, I want live tool activity and errors in the UI, so that tool-use visibility and failure continuity are obvious (FR5, FR9).
+ACs: Tool-calling turn shows tool name from tool_use before/while answer · Error event shown without crashing UI · After tool error, another message can be sent in the same session.
+
+Story 5.4: Herceptin E2E multi-turn in the UI
+As a scientist, I want mechanism → cardiotoxicity follow-up in the hosted chat, so that UJ-1 / FR17 work end-to-end.
+ACs: After login, ask Herceptin mechanism → see tool_use + answer with source IDs when available · Follow-up without restating drug name stays on-context · Soft stall UI within 5 minutes if stream hangs.
+
+Approve Epic 5 (or edits)? I’ll append and propose Epic 6.
+```
+
+## Step - 21 - My Reply
+```text
+Approve Epic 5 as proposed (Stories 5.1–5.4).
+
+Append Epic 5 and propose Epic 6.
+```
+
+## Step - 21 - Cursor Reply
+```text
+Epic 5 appended (Stories 5.1–5.4).
+
+Epic 6: Deployable pilot lifecycle
+Goal: Dev CDK-deploys the slice, uses documented Outputs, smoke-demos, destroys cleanly.
+FRs: FR18–FR21 · ADs: AD-11, AD-12, AD-13 · NFRs: NFR3, NFR12, NFR13
+
+Proposed stories
+Story 6.1: CDK Backend stack (auth, stream, runtime, gateway, tools, memory)
+As a builder, I want a TypeScript CDK Backend that wires Cognito + Identity Pool, Stream Function URL, Runtime, Gateway + 3 tools, Memory, and least-privilege IAM with 7-day logs, so that the cloud path is deployable as one unit (FR18, AD-11, AD-12).
+ACs: cdk deploy backend succeeds in us-east-1 (or context region) with Bedrock access · Outputs include UserPoolId, UserPoolClientId, IdentityPoolId, StreamUrl (+ Runtime/Gateway ids as needed) · Roles match AD-12 · No secrets committed.
+
+Story 6.2: CDK Frontend stack (S3 + CloudFront + web config)
+As a builder, I want Frontend hosting for web/ with CloudFront HTTPS and injected config, so that Asha can open the demo URL (FR18, NFR4, AD-11).
+ACs: Frontend deploy publishes Vite build · Output FrontendUrl · App config points at Cognito + Stream + Identity Pool from Backend Outputs · HTTPS via CloudFront.
+
+Story 6.3: Documented Outputs + create-user + smoke path
+As a builder, I want docs for Outputs, admin user create, and Herceptin smoke, so that demo works in <15 minutes after deploy (FR19, FR21, SM-1).
+ACs: Docs list required Outputs · Create-user steps work · Smoke path covers login → mechanism question → tool_use + answer · Honest scope language (not clinical-grade / validated-target).
+
+Story 6.4: CDK destroy + teardown docs
+As a builder, I want cdk destroy to remove app stacks and docs that call out leftovers, so that idle cost stays controlled (FR20, NFR12).
+ACs: Documented destroy removes Backend/Frontend app stacks · Docs note bootstrap/log retention leftovers · README/docs emphasize destroy-when-not-demoing.
+
+Approve Epic 6 (or edits)? I’ll append it, then we hit the step-03 final menu for validation.
+```
+
+## Step - 22 - My Reply
+```text
+Approve Epic 6 as proposed (Stories 6.1–6.4).
+Append Epic 6, then proceed to the step-03 final validation menu.
+
+After validation closes, planning is done → commit artifacts → start coding Story 1.1.
+```
+
+## Step - 22 - Cursor Reply
+```text
+Epic 6 appended. Step-04 validation summary:
+
+Check	Result
+FR1–FR21
+Covered across Stories 1.1–6.4
+AD-1–AD-15
+Bound in story ACs / epic notes
+Starter template
+None in architecture — Epic 1.1 scaffolds (OK)
+Entities/DB upfront
+N/A — Memory/tools created when needed
+Story size / Given-When-Then
+OK — 23 stories, sequential within epics
+Forward deps
+None found
+Epic independence
+Phased 1→6; each epic demoable with prior outputs
+File churn
+Intentional (agent/gateway evolve across phases); owner-approved
+Placeholders
+None left
+Soft NFR5–7
+Demo expectations; not hard story gates (intentional)
+NFR11
+Non-goal (no audit export) — no story needed
+All validations complete!
+
+[C] Complete Workflow
+
+Reply C and I’ll close planning, commit epics.md (+ HandsOn if changed), then start Story 1.1.
 
 ```
