@@ -90,11 +90,38 @@ Research assistance over **public** APIs (PubMed, ClinicalTrials.gov, ChEMBL) vi
 
 **Operating model:** deploy for demos; **destroy-when-not-demoing** to control idle cost (see [docs/deploy.md](docs/deploy.md)).
 
+## Specs & BMAD artifacts (important)
+
+This repo uses **[BMAD Method](https://github.com/bmad-code-org/BMAD-METHOD)** for spec-driven development (not Kiro). Specs are **not** only under `implementation-artifacts/` — BMAD splits **planning** vs **implementation**.
+
+| Folder | Role | Open these first |
+|--------|------|------------------|
+| [`_bmad-output/planning-artifacts/`](_bmad-output/planning-artifacts/) | **What & how** — requirements + design + epic breakdown | `prds/.../prd.md`, `architecture/.../ARCHITECTURE-SPINE.md`, `epics.md` |
+| [`_bmad-output/implementation-artifacts/`](_bmad-output/implementation-artifacts/) | **Build execution** — sprint board + per-story completion | `sprint-status.yaml`, `stories/*.md` |
+
+### If you know Kiro’s `.kiro/specs/<feature>/` layout
+
+Kiro packs requirements + design + tasks in one feature folder. BMAD spreads the same ideas across two folders:
+
+| Kiro file | BMAD equivalent in this repo |
+|-----------|------------------------------|
+| `requirements.md` | `planning-artifacts/briefs/.../brief.md` + `planning-artifacts/prds/.../prd.md` (+ `addendum.md`) |
+| `design.md` | `planning-artifacts/architecture/.../ARCHITECTURE-SPINE.md` (AD-1…AD-15) |
+| `tasks.md` | `planning-artifacts/epics.md` → then `implementation-artifacts/stories/*.md` |
+
+**Do not expect requirements/design inside `implementation-artifacts/`.** That folder is stories + sprint status by design. Full product intent and architecture live in `planning-artifacts/`.
+
+Local specialist agents (non-production) are covered in `planning-artifacts/epics-local-specialists.md` and PRD addendum §K. Production cloud path remains the single **Unified Research Agent**.
+
 ## Repository layout
 
 ```text
 .
-├── agents/unified-research-agent/   # Strands agent + Runtime image
+├── _bmad-output/
+│   ├── planning-artifacts/          # Brief, PRD, architecture, epics (requirements + design)
+│   └── implementation-artifacts/    # Sprint status + story completion records
+├── agents/unified-research-agent/   # Strands agent + Runtime image (production path)
+├── agents/                          # Local specialist scaffolds (Epic L; not separate Runtimes)
 ├── gateways/database/               # pubmed / clinicaltrials / chembl Lambdas
 ├── infra/backend/                   # CDK: Gateway, Runtime, Stream, Auth, Frontend
 ├── stream/                          # Stream Lambda + smokes
