@@ -186,7 +186,7 @@ PYTHONPATH=. python -m unified_research_agent --smoke-epic2
 # exact V1 tools + forced empty-query errors + post-failure agent turn
 ```
 
-## AgentCore Runtime (Story 3.1)
+## AgentCore Runtime + Memory (Stories 3.1–3.2)
 
 ARM64 Docker image + FastAPI `/invocations` + `/ping` — see [`docs/runtime.md`](../../docs/runtime.md).
 
@@ -196,9 +196,17 @@ docker buildx build --platform linux/arm64 \
   -f agents/unified-research-agent/Dockerfile -t agentic-target-id-ura:local --load .
 ```
 
-CDK: `infra/backend` stack `AgenticTargetIdRuntime` sets `BEDROCK_MODEL_ID` and `AGENTCORE_GATEWAY_URL`.
+CDK: `infra/backend` stack `AgenticTargetIdRuntime` sets `BEDROCK_MODEL_ID`,
+`AGENTCORE_GATEWAY_URL`, and `AGENTCORE_MEMORY_ID` (STM; no `MEMORY_ID` alias).
+
+Two-turn Memory smoke (same Runtime session key):
+
+```bash
+export AGENT_RUNTIME_ARN=...
+python scripts/smoke_runtime_memory_two_turn.py
+```
 
 ## Out of scope (later stories)
 
-- AgentCore Memory (Story 3.2)
+- Herceptin multi-turn Runtime smoke (Story 3.3)
 - Stream Lambda, Cognito, React UI (Epics 4–5)

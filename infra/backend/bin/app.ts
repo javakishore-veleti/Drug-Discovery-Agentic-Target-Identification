@@ -28,7 +28,7 @@ const gateway = new GatewayStack(app, "AgenticTargetIdGateway", {
 const runtime = new RuntimeStack(app, "AgenticTargetIdRuntime", {
   env,
   description:
-    "Agentic Target ID — AgentCore Runtime Unified Research Agent (Story 3.1)",
+    "Agentic Target ID — AgentCore Runtime + Memory STM (Stories 3.1–3.2)",
   gatewayUrl: gateway.gatewayUrl,
   gatewayArn: gateway.gatewayArn,
   gatewayId: gateway.gatewayId,

@@ -34,6 +34,22 @@ def get_agentcore_gateway_url() -> str:
     return os.environ.get("AGENTCORE_GATEWAY_URL", "").strip()
 
 
+def get_agentcore_memory_id() -> str:
+    """
+    Return AgentCore Memory id from AGENTCORE_MEMORY_ID only (AD-7 / Story 3.2).
+
+    No MEMORY_ID alias — keep the env name contract stable for Stream Lambda later.
+    """
+    return os.environ.get("AGENTCORE_MEMORY_ID", "").strip()
+
+
+def get_agentcore_actor_id() -> str:
+    """Actor id for Memory STM (V1: fixed demo actor until Cognito/Stream Lambda)."""
+    return (
+        os.environ.get("AGENTCORE_ACTOR_ID", "").strip() or "agentic_target_id"
+    )
+
+
 def use_gateway_tools() -> bool:
     """
     Prefer Gateway MCP path for tools when truthy.

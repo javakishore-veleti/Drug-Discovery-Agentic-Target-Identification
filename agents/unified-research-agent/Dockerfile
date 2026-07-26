@@ -10,6 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-6 \
     AWS_DEFAULT_REGION=us-east-1 \
     USE_GATEWAY_TOOLS=true
+# AGENTCORE_MEMORY_ID is injected by CDK Runtime (Story 3.2); do not alias MEMORY_ID.
 
 COPY agents/unified-research-agent/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt \

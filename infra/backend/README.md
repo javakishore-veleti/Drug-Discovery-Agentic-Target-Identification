@@ -5,7 +5,7 @@
 | Stack | Purpose |
 | --- | --- |
 | `AgenticTargetIdGateway` | AgentCore Gateway + pubmed / clinicaltrials / chembl Lambdas |
-| `AgenticTargetIdRuntime` | AgentCore Runtime (Unified Research Agent ARM64 container) |
+| `AgenticTargetIdRuntime` | AgentCore Runtime (ARM64 agent) + Memory STM (`AGENTCORE_MEMORY_ID`) |
 
 Gateway tools:
 
@@ -46,6 +46,7 @@ Copy `GatewayUrl` into `agents/unified-research-agent/.env` as `AGENTCORE_GATEWA
 | `ChemblMcpToolName` | Logical AD-3 name: `chembl` |
 | `AgentRuntimeArn` | `InvokeAgentRuntime` / smoke (`AGENT_RUNTIME_ARN`) |
 | `BedrockModelId` | Pinned AD-6 model on Runtime |
+| `AgentCoreMemoryId` | Set as `AGENTCORE_MEMORY_ID` on Runtime (Story 3.2) |
 
 AgentCore Gateway may expose wire MCP names as `${target}___${tool}`. The agent normalizes to logical AD-3 names.
 

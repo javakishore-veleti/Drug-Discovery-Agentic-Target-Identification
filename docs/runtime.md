@@ -1,6 +1,7 @@
-# AgentCore Runtime — Unified Research Agent (Story 3.1)
+# AgentCore Runtime — Unified Research Agent (Stories 3.1–3.2)
 
-Single Strands agent container for Amazon Bedrock AgentCore Runtime (AD-2, AD-6).
+Single Strands agent container for Amazon Bedrock AgentCore Runtime (AD-2, AD-6)
+with in-session AgentCore Memory STM (AD-7 / Story 3.2).
 
 ## Packaging
 
@@ -8,11 +9,14 @@ Single Strands agent container for Amazon Bedrock AgentCore Runtime (AD-2, AD-6)
 | --- | --- |
 | Dockerfile (linux/arm64) | `agents/unified-research-agent/Dockerfile` |
 | HTTP contract | `unified_research_agent/runtime_app.py` — `POST /invocations`, `GET /ping` on **8080** |
-| CDK | `infra/backend/stacks/runtime-stack.ts` (`AgentRuntimeArtifact.fromAsset`) |
+| CDK | `infra/backend/stacks/runtime-stack.ts` (`AgentRuntimeArtifact.fromAsset` + `Memory`) |
 | Model pin | `BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-6` (AD-6; Sonnet 4.0 EOL in many accounts) |
 | Gateway tools | `AGENTCORE_GATEWAY_URL` + `USE_GATEWAY_TOOLS=true` |
+| Memory STM | `AGENTCORE_MEMORY_ID` only (no `MEMORY_ID` alias) |
 
 Build context is the **repository root** so the image includes `gateways/database/` adapters.
+
+V1 Memory is **in-session only** — no session-list UI and no cross-day resume UI.
 
 ## Local container smoke (optional)
 
@@ -69,6 +73,20 @@ With Gateway configured on the Runtime, tool calls use MCP (`pubmed` / `clinical
 
 **IAM note:** Runtime execution role needs cross-region `bedrock:InvokeModel*` on `arn:aws:bedrock:*::foundation-model/*` so US inference profiles (e.g. `us.anthropic.claude-sonnet-4-6`) can resolve.
 
+## Two-turn Memory smoke (Story 3.2)
+
+Same `runtimeSessionId` for both invokes. Turn 1 sets research focus `trastuzumab`; turn 2 asks for the focus compound without restating it.
+
+```bash
+cd agents/unified-research-agent
+export AGENT_RUNTIME_ARN=arn:aws:bedrock-agentcore:us-east-1:ACCOUNT:runtime/RUNTIME_ID
+export AWS_REGION=us-east-1
+python scripts/smoke_runtime_memory_two_turn.py
+```
+
+Expect `ok: true`, `memory: true` / `memory_id_configured: true`, and turn 2 naming trastuzumab/Herceptin.
+Runtime env must include `AGENTCORE_MEMORY_ID` (CDK output `AgentCoreMemoryId`).
+
 ## Destroy when idle
 
 ```bash
@@ -78,7 +96,7 @@ npx cdk destroy AgenticTargetIdRuntime AgenticTargetIdGateway --force
 
 CDK bootstrap / log retention leftovers may remain (AD-11).
 
-## Out of scope (Story 3.2+)
+## Out of scope (Story 3.3+)
 
-- AgentCore Memory (`AGENTCORE_MEMORY_ID`)
+- Herceptin multi-turn Runtime smoke (mechanism → cardiotoxicity)
 - Stream Lambda / Cognito UI

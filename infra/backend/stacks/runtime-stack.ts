@@ -17,15 +17,17 @@ export interface RuntimeStackProps extends cdk.StackProps {
 }
 
 /**
- * Story 3.1 — AgentCore Runtime for the Unified Research Agent container.
+ * Stories 3.1–3.2 — AgentCore Runtime + in-session Memory (STM).
  *
  * - ARM64 Docker asset from repo-root Dockerfile
  * - BEDROCK_MODEL_ID pin (AD-6 / Sonnet 4.6)
  * - Env AGENTCORE_GATEWAY_URL so tools use Gateway MCP when configured
+ * - Env AGENTCORE_MEMORY_ID for Chat Session multi-turn (AD-7; no MEMORY_ID alias)
  */
 export class RuntimeStack extends cdk.Stack {
   public readonly agentRuntimeArn: string;
   public readonly agentRuntimeId: string;
+  public readonly memoryId: string;
 
   constructor(scope: Construct, id: string, props: RuntimeStackProps) {
     super(scope, id, props);
@@ -36,6 +38,14 @@ export class RuntimeStack extends cdk.Stack {
       process.env.BEDROCK_MODEL_ID ||
       "us.anthropic.claude-sonnet-4-6";
 
+    // Story 3.2 — short-term memory only (no LTM strategies / no cross-day UI).
+    const memory = new agentcore.Memory(this, "ChatSessionMemory", {
+      memoryName: "agentic_target_id_stm",
+      description:
+        "In-session STM for Unified Research Agent Chat Sessions (AD-7 / Story 3.2)",
+      expirationDuration: cdk.Duration.days(7),
+    });
+
     const artifact = agentcore.AgentRuntimeArtifact.fromAsset(repoRoot, {
       file: "agents/unified-research-agent/Dockerfile",
       platform: ecr_assets.Platform.LINUX_ARM64,
@@ -43,7 +53,8 @@ export class RuntimeStack extends cdk.Stack {
 
     const runtime = new agentcore.Runtime(this, "UnifiedResearchRuntime", {
       runtimeName: "agentic_target_id_ura",
-      description: "Unified Research Agent (Story 3.1) — single Strands entrypoint",
+      description:
+        "Unified Research Agent (Stories 3.1–3.2) — Runtime + Memory STM",
       agentRuntimeArtifact: artifact,
       networkConfiguration: agentcore.RuntimeNetworkConfiguration.usingPublicNetwork(),
       authorizerConfiguration: agentcore.RuntimeAuthorizerConfiguration.usingIAM(),
@@ -53,6 +64,8 @@ export class RuntimeStack extends cdk.Stack {
         AWS_REGION: cdk.Stack.of(this).region,
         AGENTCORE_GATEWAY_URL: props.gatewayUrl,
         USE_GATEWAY_TOOLS: "true",
+        AGENTCORE_MEMORY_ID: memory.memoryId,
+        AGENTCORE_ACTOR_ID: "agentic_target_id",
       },
     });
 
@@ -83,6 +96,10 @@ export class RuntimeStack extends cdk.Stack {
       }),
     );
 
+    // Memory STM read/write for CreateEvent + ListEvents (session history reload)
+    memory.grantWrite(runtime.grantPrincipal);
+    memory.grantReadShortTermMemory(runtime.grantPrincipal);
+
     const invokerArn =
       props.runtimeInvokerArn ||
       (this.node.tryGetContext("runtimeInvokerArn") as string | undefined) ||
@@ -96,6 +113,7 @@ export class RuntimeStack extends cdk.Stack {
 
     this.agentRuntimeArn = runtime.agentRuntimeArn;
     this.agentRuntimeId = runtime.agentRuntimeId;
+    this.memoryId = memory.memoryId;
 
     new cdk.CfnOutput(this, "AgentRuntimeArn", {
       value: runtime.agentRuntimeArn,
@@ -118,6 +136,11 @@ export class RuntimeStack extends cdk.Stack {
     new cdk.CfnOutput(this, "RuntimeGatewayId", {
       value: props.gatewayId,
       description: "Gateway id paired with this Runtime",
+    });
+    new cdk.CfnOutput(this, "AgentCoreMemoryId", {
+      value: memory.memoryId,
+      description: "AGENTCORE_MEMORY_ID for Chat Session STM (Story 3.2)",
+      exportName: "AgenticTargetId-AgentCoreMemoryId",
     });
   }
 }
