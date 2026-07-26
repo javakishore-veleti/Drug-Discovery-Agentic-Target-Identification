@@ -2,7 +2,7 @@
 title: "PRD: Agentic Target ID"
 status: final
 created: 2026-07-25
-updated: 2026-07-25
+updated: 2026-07-26
 ---
 
 # PRD: Agentic Target ID
@@ -325,6 +325,7 @@ Clear technical docs cover prerequisites, install, deploy, user create, demo smo
 - Self-signup / public registration UI
 - Shipping more than three Gateway Tools in V1
 - Hard production SLAs or 24/7 on-call
+- Separate AgentCore Runtimes / CDK stacks for domain specialist agents (local CLI suite only — see addendum §K)
 
 ## 6. MVP Scope
 
@@ -348,6 +349,10 @@ Clear technical docs cover prerequisites, install, deploy, user create, demo smo
 - Open Targets–style structured target evidence and pathway tools — near-term after V1
 - Multi-agent orchestration — after structured evidence tools
 - Federate SSO, heavy WAF/CI, PHI, clinical systems
+
+### 6.3 Local specialist suite (non-cloud; addendum §K)
+
+Folder-parity specialist CLIs (drug profile, patient risk, pathway, cardioprotection, drug design, plus local supervisor stubs and genetic-risk package) may exist under `agents/` for local experimentation. They are **not** V1 cloud FRs, **not** required for SM-1, and **must not** be deployed as additional Runtimes in V1. Requirements and ACs: `addendum.md` §K; stories: `epics-local-specialists.md`.
 
 ## 7. Success Metrics
 
