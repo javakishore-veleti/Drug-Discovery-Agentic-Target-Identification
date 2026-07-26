@@ -6,6 +6,28 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 
 > Research assistance only. **Not** medical advice, clinical decision support, or a validated-target ranking product.
 
+## What is target identification?
+
+**Target identification** is a core early-stage **drug discovery** concept.
+
+In pharmaceutical R&D, a **target** is usually a biological molecule (often a protein, gene, or pathway node) believed to be causally linked to a disease and modulable by a drug. Target identification is the work of finding and justifying that target before heavy investment in chemistry and clinical development.
+
+Typical questions include:
+
+- What drives the disease biology?
+- Is this protein or pathway druggable?
+- What happens if we inhibit or activate it (efficacy and safety)?
+- Which patients benefit most?
+- Are there patents, prior art, or competing approaches?
+
+It sits early in the pipeline:
+
+**Disease biology → Target identification → Target validation → Hit/lead discovery → Optimization → Preclinical → Clinical**
+
+## Problem
+
+Target identification accounts for a large share of cost and failure risk in drug development. Critical evidence is scattered across literature, clinical registries, chemistry databases, protein networks, and safety sources. This platform unifies that work into an **agentic** research workflow so scientists can ask multi-domain questions and get evidence-backed answers faster—via **AWS Bedrock AgentCore**, governed Gateway tools, and live Stream Events.
+
 ## Why agentic (not a chatbot wrapper)
 
 | Capability | What you get |
