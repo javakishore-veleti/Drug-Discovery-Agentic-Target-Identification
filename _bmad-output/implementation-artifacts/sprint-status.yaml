@@ -181,38 +181,38 @@ epics:
         file: stories/M3.3-gateway-tool-4-candidate-spike.md
   - id: M4
     title: "Release engineering, SRE, events (V3 ops)"
-    status: backlog
+    status: done
     stories:
       - id: M4.1
-        status: backlog
+        status: done
         file: stories/M4.1-staging-environment-and-promote-path.md
       - id: M4.2
-        status: backlog
+        status: done
         file: stories/M4.2-blue-green-or-traffic-shift.md
       - id: M4.3
-        status: backlog
+        status: done
         file: stories/M4.3-slo-definitions-always-on.md
       - id: M4.4
-        status: backlog
+        status: done
         file: stories/M4.4-load-concurrency-smoke.md
       - id: M4.5
-        status: backlog
+        status: done
         file: stories/M4.5-eventbridge-before-kafka.md
       - id: M4.6
-        status: backlog
+        status: cancelled
         file: stories/M4.6-kafka-msk-adoption-gate.md
   - id: M5
     title: "Security hardening beyond V1 baseline"
-    status: backlog
+    status: done
     stories:
       - id: M5.1
         status: done
         file: stories/M5.1-lightweight-threat-model.md
       - id: M5.2
-        status: backlog
+        status: done
         file: stories/M5.2-cloudfront-waf-managed-rules-optional.md
       - id: M5.3
-        status: backlog
+        status: done
         file: stories/M5.3-cognito-federation-sso-spike.md
       - id: M5.4
         status: done

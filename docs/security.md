@@ -15,6 +15,30 @@ Lightweight operator/builder notes. Not a formal pen-test report.
 
 **Out of scope forever for V1 product claims:** PHI/EHR, clinical decision support, clinical-grade ranking.
 
+## Optional CloudFront WAF (M5.2)
+
+Default **off** (destroy-when-idle demos). Enable when sharing a public URL:
+
+```bash
+cd infra/backend
+npx cdk deploy AgenticTargetIdFrontend --require-approval never \
+  -c enableWaf=true \
+  -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
+```
+
+Attaches AWS Managed Rules Common Rule Set (CLOUDFRONT scope — deploy Frontend in **us-east-1**). Expect extra cost and possible false positives on aggressive rules.
+
+## Cognito federation / SSO spike (M5.3)
+
+V1 remains email/password admin-provisioned. To spike SAML/OIDC later:
+
+1. Cognito User Pool → Federation → Add identity provider (SAML or OIDC).
+2. App client: enable the IdP; keep USER_PASSWORD_AUTH for lab users.
+3. Hosted UI or Amplify `federatedSignIn` in `web/` (not required for V1).
+4. Identity Pool still vends credentials for Stream SigV4 after IdP sign-in.
+
+Document IdP metadata / callback URLs outside git if sensitive. Do not remove the password path until SSO is proven.
+
 ## Secrets Manager pattern (M5.4)
 
 V1 tools (PubMed / ClinicalTrials / ChEMBL) need **no** long-lived API keys.

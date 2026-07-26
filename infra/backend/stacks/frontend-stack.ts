@@ -6,6 +6,7 @@ import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as wafv2 from "aws-cdk-lib/aws-wafv2";
 import { Construct } from "constructs";
 
 export interface FrontendStackProps extends cdk.StackProps {
@@ -138,6 +139,55 @@ export class FrontendStack extends cdk.Stack {
     });
 
     this.frontendUrl = `https://${distribution.distributionDomainName}`;
+
+    // Story M5.2 — optional CloudFront WAF (us-east-1 CLOUDFRONT scope).
+    // Default OFF for destroy-when-idle demos. Enable: -c enableWaf=true
+    const enableWaf =
+      this.node.tryGetContext("enableWaf") === true ||
+      this.node.tryGetContext("enableWaf") === "true";
+    if (enableWaf) {
+      const acl = new wafv2.CfnWebACL(this, "FrontendWaf", {
+        name: "agentic-target-id-frontend-waf",
+        defaultAction: { allow: {} },
+        scope: "CLOUDFRONT",
+        visibilityConfig: {
+          cloudWatchMetricsEnabled: true,
+          metricName: "agenticTargetIdFrontendWaf",
+          sampledRequestsEnabled: true,
+        },
+        rules: [
+          {
+            name: "AWSManagedRulesCommonRuleSet",
+            priority: 1,
+            overrideAction: { none: {} },
+            statement: {
+              managedRuleGroupStatement: {
+                name: "AWSManagedRulesCommonRuleSet",
+                vendorName: "AWS",
+              },
+            },
+            visibilityConfig: {
+              cloudWatchMetricsEnabled: true,
+              metricName: "CommonRuleSet",
+              sampledRequestsEnabled: true,
+            },
+          },
+        ],
+      });
+      // CloudFront associates WAF via DistributionConfig.WebACLId.
+      const cfnDist = distribution.node.defaultChild as cloudfront.CfnDistribution;
+      cfnDist.addPropertyOverride("DistributionConfig.WebACLId", acl.attrArn);
+      new cdk.CfnOutput(this, "FrontendWafEnabled", {
+        value: "true",
+        description:
+          "CloudFront WAF managed rules attached (M5.2). Cost + false positives possible.",
+      });
+    } else {
+      new cdk.CfnOutput(this, "FrontendWafEnabled", {
+        value: "false",
+        description: "Pass -c enableWaf=true to attach CloudFront WAF (M5.2)",
+      });
+    }
 
     new cdk.CfnOutput(this, "FrontendUrl", {
       value: this.frontendUrl,

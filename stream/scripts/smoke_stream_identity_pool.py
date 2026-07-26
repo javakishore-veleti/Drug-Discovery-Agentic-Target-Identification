@@ -100,6 +100,41 @@ def _post(url: str, data: bytes, headers: dict[str, str]) -> tuple[int, str]:
         return exc.code, exc.read().decode("utf-8", errors="replace")
 
 
+def run_one_prompt(message: str = "Reply with exactly one word: ok") -> bool:
+    """
+    One authenticated SigV4 Stream turn (Story M4.4 load helper).
+
+    Returns True if HTTP 200 and SSE ends with ``done``.
+    """
+    stream_url = _require("STREAM_URL")
+    user_pool_id = _require("USER_POOL_ID")
+    client_id = _require("USER_POOL_CLIENT_ID")
+    identity_pool_id = _require("IDENTITY_POOL_ID")
+    email = _require("SMOKE_USER_EMAIL")
+    password = _require("SMOKE_USER_PASSWORD")
+    region = (
+        os.environ.get("AWS_REGION")
+        or os.environ.get("AWS_DEFAULT_REGION")
+        or "us-east-1"
+    )
+    payload = json.dumps({"message": message}).encode("utf-8")
+    id_token = _id_token(region, client_id, email, password)
+    creds = _temp_creds(region, identity_pool_id, user_pool_id, id_token)
+    aws_req = AWSRequest(
+        method="POST",
+        url=stream_url,
+        data=payload,
+        headers={"Content-Type": "application/json"},
+    )
+    SigV4Auth(creds, "lambda", region).add_auth(aws_req)
+    prepared = aws_req.prepare()
+    status, body = _post(stream_url, payload, dict(prepared.headers))
+    if status != 200:
+        return False
+    events = _parse_sse(body)
+    return bool(events) and events[-1].get("type") == "done"
+
+
 def main() -> int:
     stream_url = _require("STREAM_URL")
     user_pool_id = _require("USER_POOL_ID")

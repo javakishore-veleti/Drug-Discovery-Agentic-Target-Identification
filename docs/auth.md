@@ -8,6 +8,8 @@ V1 UI→Stream path (AD-1 / AD-10):
 - No AgentCore Runtime IAM in the browser.
 - Users are **admin-provisioned** (no self-signup UI).
 
+SSO / SAML / OIDC federation is a **post-V1 spike** (Story M5.3) — see [security.md](security.md). Password path stays supported.
+
 ## Outputs
 
 | Output | Stack | Use |
