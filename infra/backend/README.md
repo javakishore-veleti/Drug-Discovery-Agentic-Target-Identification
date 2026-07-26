@@ -1,6 +1,9 @@
-# Backend CDK — AgentCore Gateway (Story 2.1)
+# Backend CDK — AgentCore Gateway (Stories 2.1–2.2)
 
-Deploys AgentCore Gateway (IAM inbound auth) with a Lambda MCP target whose **tool schema name is exactly `pubmed`**, reusing `gateways/database/pubmed/adapter.py`.
+Deploys AgentCore Gateway (IAM inbound auth) with Lambda MCP targets:
+
+- **`pubmed`** → `gateways/database/pubmed/`
+- **`clinicaltrials`** → `gateways/database/clinicaltrials/`
 
 ## Prerequisites
 
@@ -28,8 +31,9 @@ Copy `GatewayUrl` into `agents/unified-research-agent/.env` as `AGENTCORE_GATEWA
 | `GatewayUrl` | MCP endpoint for the agent (`AGENTCORE_GATEWAY_URL`) |
 | `GatewayId` / `GatewayArn` | Ops / IAM |
 | `PubmedMcpToolName` | Logical AD-3 name: `pubmed` |
+| `ClinicaltrialsMcpToolName` | Logical AD-3 name: `clinicaltrials` |
 
-AgentCore Gateway may expose the wire MCP name as `pubmed___pubmed` (target___tool). The agent normalizes to logical `pubmed`.
+AgentCore Gateway may expose wire MCP names as `${target}___${tool}`. The agent normalizes to logical AD-3 names.
 
 ## Destroy
 

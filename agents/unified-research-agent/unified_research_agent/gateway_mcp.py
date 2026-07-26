@@ -1,5 +1,5 @@
 """
-AgentCore Gateway MCP client (Story 2.1).
+AgentCore Gateway MCP client (Stories 2.1–2.2).
 
 Uses SigV4 via mcp-proxy-for-aws against an IAM-authorized Gateway.
 Normalizes wire names like `pubmed___pubmed` → logical `pubmed` (AD-3).
@@ -18,6 +18,7 @@ from .config import get_agentcore_gateway_url, get_aws_region, use_gateway_tools
 logger = logging.getLogger(__name__)
 
 LOGICAL_PUBMED = "pubmed"
+LOGICAL_CLINICALTRIALS = "clinicaltrials"
 _DELIMITER = "___"
 
 
@@ -70,32 +71,61 @@ def list_logical_gateway_tools(client: MCPClient) -> list[str]:
     return sorted({logical_tool_name(t.tool_name) for t in tools})
 
 
+def call_gateway_tool(
+    client: MCPClient,
+    *,
+    logical_name: str,
+    arguments: dict[str, Any],
+    tool_use_id: str,
+) -> dict[str, Any]:
+    """Call a Gateway MCP tool by logical AD-3 name; return adapter-shaped dict."""
+    tools = client.list_tools_sync()
+    wire = wire_tool_name_for_logical(tools, logical_name)
+    if not wire:
+        names = [getattr(t, "tool_name", "?") for t in tools]
+        raise RuntimeError(
+            f"Gateway did not expose {logical_name} (logical). Wire tools seen: {names}"
+        )
+
+    result = client.call_tool_sync(
+        tool_use_id=tool_use_id,
+        name=wire,
+        arguments=arguments,
+    )
+    return _parse_tool_result(result, tool=logical_name)
+
+
 def call_gateway_pubmed(
     client: MCPClient,
     *,
     query: str,
     retmax: int = 8,
 ) -> dict[str, Any]:
-    """
-    Call Gateway MCP tool pubmed and return a parsed adapter-shaped dict.
-    """
-    tools = client.list_tools_sync()
-    wire = wire_tool_name_for_logical(tools, LOGICAL_PUBMED)
-    if not wire:
-        names = [getattr(t, "tool_name", "?") for t in tools]
-        raise RuntimeError(
-            f"Gateway did not expose pubmed (logical). Wire tools seen: {names}"
-        )
-
-    result = client.call_tool_sync(
-        tool_use_id="gateway-pubmed-1",
-        name=wire,
+    """Call Gateway MCP tool pubmed and return a parsed adapter-shaped dict."""
+    return call_gateway_tool(
+        client,
+        logical_name=LOGICAL_PUBMED,
         arguments={"query": query, "retmax": retmax},
+        tool_use_id="gateway-pubmed-1",
     )
-    return _parse_tool_result(result)
 
 
-def _parse_tool_result(result: Any) -> dict[str, Any]:
+def call_gateway_clinicaltrials(
+    client: MCPClient,
+    *,
+    query: str,
+    retmax: int = 8,
+) -> dict[str, Any]:
+    """Call Gateway MCP tool clinicaltrials and return a parsed adapter-shaped dict."""
+    return call_gateway_tool(
+        client,
+        logical_name=LOGICAL_CLINICALTRIALS,
+        arguments={"query": query, "retmax": retmax},
+        tool_use_id="gateway-clinicaltrials-1",
+    )
+
+
+def _parse_tool_result(result: Any, *, tool: str = LOGICAL_PUBMED) -> dict[str, Any]:
     """Best-effort unwrap of MCP / Strands tool result into adapter dict."""
     if isinstance(result, dict) and "ids" in result:
         return result
@@ -154,11 +184,10 @@ def _parse_tool_result(result: Any) -> dict[str, Any]:
 
     return {
         "status": "error",
-        "tool": LOGICAL_PUBMED,
+        "tool": tool,
         "message": f"Unrecognized Gateway tool result: {type(result).__name__}",
         "ids": {"pmid": [], "nct": [], "chembl": []},
         "summary": "",
-        "articles": [],
     }
 
 

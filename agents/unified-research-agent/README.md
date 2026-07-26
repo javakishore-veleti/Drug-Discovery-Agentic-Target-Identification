@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Stories **1.1–1.4** (Epic 1) plus **2.1** (Gateway PubMed): pinned model, research-assist prompt, PubMed via local adapter or AgentCore Gateway MCP. No Runtime / Stream / Cognito UI yet.
+Stories **1.1–1.4** (Epic 1) plus **2.1–2.2** (Gateway PubMed + ClinicalTrials): pinned model, research-assist prompt, evidence tools via local adapters or AgentCore Gateway MCP. No Runtime / Stream / Cognito UI yet.
 
 ## Prerequisites
 
@@ -147,7 +147,22 @@ PYTHONPATH=. python -m unified_research_agent \
 
 Agent tool name stays exactly `pubmed`. When Gateway is enabled, invocations go through AgentCore Gateway MCP (SigV4) into the shared Lambda adapter — not the local-only path.
 
+## Gateway ClinicalTrials (Story 2.2)
+
+Logical MCP tool: `clinicaltrials`. OK results include `ids.nct` (`NCT` + 8 digits).
+
+```bash
+PYTHONPATH=. python -m unified_research_agent --list-gateway-tools
+# expect: logical_tools includes clinicaltrials
+
+PYTHONPATH=gateways/database python -c "
+from clinicaltrials.adapter import search_clinicaltrials
+r = search_clinicaltrials('trastuzumab HER2', retmax=5)
+print(r['status'], r['ids']['nct'][:5], r.get('message'))
+"
+```
+
 ## Out of scope (later stories)
 
-- Gateway tools `clinicaltrials` / `chembl` (Stories 2.2–2.3)
+- Gateway tool `chembl` (Story 2.3)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI (Epics 3–5)
