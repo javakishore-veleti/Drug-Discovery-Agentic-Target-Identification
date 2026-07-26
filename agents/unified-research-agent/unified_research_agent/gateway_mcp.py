@@ -1,5 +1,5 @@
 """
-AgentCore Gateway MCP client (Stories 2.1–2.3).
+AgentCore Gateway MCP client (Stories 2.1–2.4).
 
 Uses SigV4 via mcp-proxy-for-aws against an IAM-authorized Gateway.
 Normalizes wire names like `pubmed___pubmed` → logical `pubmed` (AD-3).
@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 import logging
+import sys
+from pathlib import Path
 from typing import Any
 
 from strands.tools.mcp import MCPClient
@@ -21,6 +23,27 @@ LOGICAL_PUBMED = "pubmed"
 LOGICAL_CLINICALTRIALS = "clinicaltrials"
 LOGICAL_CHEMBL = "chembl"
 _DELIMITER = "___"
+
+# Keep in sync with gateways/database/tool_contract.py + CDK V1_LOGICAL_TOOLS
+V1_LOGICAL_TOOLS: frozenset[str] = frozenset(
+    {LOGICAL_PUBMED, LOGICAL_CLINICALTRIALS, LOGICAL_CHEMBL}
+)
+
+
+def _ensure_tool_contract_on_path() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    gateway_db = repo_root / "gateways" / "database"
+    path_str = str(gateway_db)
+    if path_str not in sys.path:
+        sys.path.insert(0, path_str)
+
+
+def assert_exact_v1_gateway_tools(logical_names: list[str] | set[str]) -> None:
+    """Story 2.4 — default Gateway must expose exactly the three V1 tools."""
+    _ensure_tool_contract_on_path()
+    from tool_contract import assert_exact_v1_tools  # noqa: E402
+
+    assert_exact_v1_tools(logical_names)
 
 
 def logical_tool_name(wire_name: str) -> str:
@@ -70,6 +93,28 @@ def list_logical_gateway_tools(client: MCPClient) -> list[str]:
     """List logical tool names visible through the Gateway."""
     tools = client.list_tools_sync()
     return sorted({logical_tool_name(t.tool_name) for t in tools})
+
+
+def is_safe_error_result(result: dict[str, Any], *, expected_tool: str) -> bool:
+    """True if result matches AD-8 error tool_result (status/tool/message/ids)."""
+    if result.get("status") != "error":
+        return False
+    if result.get("tool") != expected_tool:
+        return False
+    message = result.get("message")
+    if not isinstance(message, str) or not message.strip():
+        return False
+    # No stack-trace-ish leakage in user-visible message
+    lowered = message.lower()
+    if "traceback" in lowered or "secret" in lowered:
+        return False
+    ids = result.get("ids")
+    if not isinstance(ids, dict):
+        return False
+    for key in ("pmid", "nct", "chembl"):
+        if key not in ids or not isinstance(ids[key], list):
+            return False
+    return True
 
 
 def call_gateway_tool(

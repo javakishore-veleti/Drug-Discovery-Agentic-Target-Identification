@@ -37,6 +37,8 @@ Copy `GatewayUrl` into `agents/unified-research-agent/.env` as `AGENTCORE_GATEWA
 
 AgentCore Gateway may expose wire MCP names as `${target}___${tool}`. The agent normalizes to logical AD-3 names.
 
+Story **2.4**: default deploy exposes **exactly** those three tools. Shared `tool_result` contract (status / tool / ids / summary / message): [`docs/tool-result-contract.md`](../../docs/tool-result-contract.md).
+
 ## Destroy
 
 ```bash

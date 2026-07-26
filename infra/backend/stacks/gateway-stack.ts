@@ -6,28 +6,38 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 
+/** Story 2.4 / AD-3 / FR-16 — default Gateway exposes exactly these logical MCP names. */
+const V1_LOGICAL_TOOLS = ["pubmed", "clinicaltrials", "chembl"] as const;
+
 /**
- * AgentCore Gateway — PubMed (2.1) + ClinicalTrials.gov (2.2) + ChEMBL (2.3).
+ * AgentCore Gateway — V1 evidence tools (Stories 2.1–2.4).
  *
  * - Inbound auth: AWS IAM (Runtime / local SigV4 clients)
- * - Tool schema names: exactly `pubmed`, `clinicaltrials`, `chembl` (AD-3)
+ * - Tool schema names: exactly the three names in V1_LOGICAL_TOOLS (AD-3)
  * - Wire names may be `${target}___${tool}`; agent normalizes to logical names.
+ * - Shared error contract: docs/tool-result-contract.md
  */
 export class GatewayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // Compile-time guard: do not silently grow past three V1 tools.
+    if (V1_LOGICAL_TOOLS.length !== 3) {
+      throw new Error("V1_LOGICAL_TOOLS must contain exactly three tool names");
+    }
+
     const gatewaysDb = path.join(__dirname, "..", "..", "..", "gateways", "database");
 
     const gateway = new agentcore.Gateway(this, "ResearchGateway", {
       gatewayName: "agentic-target-id-gw",
-      description: "Agentic Target ID evidence gateway (V1 pubmed + clinicaltrials + chembl)",
+      description: "Agentic Target ID evidence gateway (V1: pubmed, clinicaltrials, chembl)",
       authorizerConfiguration: agentcore.GatewayAuthorizer.usingAwsIam(),
       exceptionLevel: agentcore.GatewayExceptionLevel.DEBUG,
       protocolConfiguration: agentcore.GatewayProtocol.mcp({
         supportedVersions: [agentcore.MCPProtocolVersion.MCP_2025_03_26],
         instructions:
-          "Evidence tools for drug-discovery target identification. Logical tool names: pubmed, clinicaltrials, chembl.",
+          "Evidence tools for drug-discovery target identification. " +
+          `Logical tool names (exactly three): ${V1_LOGICAL_TOOLS.join(", ")}.`,
       }),
     });
 
@@ -191,6 +201,10 @@ export class GatewayStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ChemblMcpToolName", {
       value: "chembl",
       description: "Logical MCP tool name (AD-3). Wire may be chembl___chembl.",
+    });
+    new cdk.CfnOutput(this, "V1LogicalTools", {
+      value: V1_LOGICAL_TOOLS.join(","),
+      description: "Story 2.4 — exact default Gateway logical tool set (AD-3 / FR-16)",
     });
   }
 

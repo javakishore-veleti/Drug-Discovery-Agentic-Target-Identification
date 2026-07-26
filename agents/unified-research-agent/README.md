@@ -174,7 +174,18 @@ print(r['status'], r['ids']['chembl'][:5], r.get('message'))
 "
 ```
 
+## Epic 2 complete (Story 2.4)
+
+Exactly three Gateway tools + shared error contract — see [`docs/tool-result-contract.md`](../../docs/tool-result-contract.md).
+
+```bash
+PYTHONPATH=. python -m unified_research_agent --list-gateway-tools
+# expect: logical_tools=chembl,clinicaltrials,pubmed  (exit 0 only if exact set)
+
+PYTHONPATH=. python -m unified_research_agent --smoke-epic2
+# exact V1 tools + forced empty-query errors + post-failure agent turn
+```
+
 ## Out of scope (later stories)
 
-- Exactly-three-tools enforcement (Story 2.4)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI (Epics 3–5)
