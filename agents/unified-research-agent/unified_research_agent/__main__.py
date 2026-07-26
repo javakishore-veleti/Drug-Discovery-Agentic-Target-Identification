@@ -22,7 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     _load_env()
 
     parser = argparse.ArgumentParser(
-        description="Unified Research Agent — local Bedrock smoke (Story 1.1)",
+        description="Unified Research Agent — local Bedrock + PubMed CLI (Epic 1)",
     )
     parser.add_argument(
         "prompt",

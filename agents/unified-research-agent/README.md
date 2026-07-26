@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Stories **1.1–1.3**: pinned model, research-assist prompt, local PubMed tool (shared adapter under `gateways/database/pubmed/`). No AgentCore Gateway deploy, Stream Lambda, Cognito, or React UI yet.
+Stories **1.1–1.4** (Epic 1 complete): pinned model, research-assist prompt, local PubMed tool, Herceptin synthesis with PMID surfacing. No AgentCore Gateway deploy, Stream Lambda, Cognito, or React UI yet.
 
 ## Prerequisites
 
@@ -24,16 +24,16 @@ cp .env.example .env        # edit if needed
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `BEDROCK_MODEL_ID` | `us.anthropic.claude-sonnet-4-20250514-v1:0` | Architecture AD-6 pin |
+| `BEDROCK_MODEL_ID` | `us.anthropic.claude-sonnet-4-6` | Active US pin (AD-6 intent; Sonnet 4.0 id is Legacy/EOL) |
 | `AWS_REGION` | `us-east-1` | Or `AWS_DEFAULT_REGION` |
 
-If Sonnet 4 is not enabled in your account, set the AD-6 fallback in `.env`:
+If Sonnet 4.6 is not enabled, set the fallback in `.env`:
 
 ```bash
-BEDROCK_MODEL_ID=anthropic.claude-3-7-sonnet-20250219-v1:0
+BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
 ```
 
-After the first live smoke: if invoke fails with model-access / validation errors for Sonnet 4, switch `.env` to the fallback above and keep using that pin until Sonnet 4 is enabled in Bedrock console → Model access.
+Enable model access in Bedrock console for the chosen id. Older pins such as `claude-sonnet-4-20250514` / `claude-3-7-sonnet` may return Legacy/EOL errors.
 
 ## Research-assist boundary (Story 1.2)
 
@@ -70,6 +70,17 @@ Agent + tool (needs Bedrock):
 PYTHONPATH=. python -m unified_research_agent \
   "Use the pubmed tool to find literature on the mechanism of action of Herceptin (trastuzumab). List PMIDs."
 ```
+
+## Story 1.4 — Herceptin synthesis smoke
+
+```bash
+cd agents/unified-research-agent
+source .venv/bin/activate
+PYTHONPATH=. python -m unified_research_agent \
+  "What is the mechanism of action of Herceptin?"
+```
+
+Expect: `pubmed` tool use, a short synthesis, and at least one `PMID …` from the tool’s `ids.pmid` in the answer.
 
 ## Run (trivial smoke)
 
@@ -115,6 +126,6 @@ gateways/database/pubmed/
 
 ## Out of scope (later stories)
 
-- Herceptin synthesis citation polish (1.4)
 - AgentCore Gateway deploy for all three tools (Epic 2)
+- AgentCore Runtime, Stream Lambda, Cognito, React UI (Epics 3–5)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI

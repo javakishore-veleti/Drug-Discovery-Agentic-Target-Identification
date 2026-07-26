@@ -1,4 +1,4 @@
-"""Create the local Unified Research Agent (Stories 1.1–1.3)."""
+"""Create the local Unified Research Agent (Stories 1.1–1.4)."""
 
 from __future__ import annotations
 
