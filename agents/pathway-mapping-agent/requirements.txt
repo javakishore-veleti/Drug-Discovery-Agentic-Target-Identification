@@ -1,0 +1,3 @@
+# Local specialist — reuse unified-research-agent dependencies.
+-r ../unified-research-agent/requirements.txt
+python-dotenv>=1.0.0
