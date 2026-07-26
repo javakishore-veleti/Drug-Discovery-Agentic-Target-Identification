@@ -2,6 +2,7 @@
 import * as cdk from "aws-cdk-lib";
 import { GatewayStack } from "../stacks/gateway-stack";
 import { RuntimeStack } from "../stacks/runtime-stack";
+import { StreamStack } from "../stacks/stream-stack";
 
 const app = new cdk.App();
 
@@ -13,7 +14,8 @@ const env = {
 const invokerArn =
   (app.node.tryGetContext("gatewayInvokerArn") as string | undefined) ||
   process.env.GATEWAY_INVOKER_ARN ||
-  process.env.RUNTIME_INVOKER_ARN;
+  process.env.RUNTIME_INVOKER_ARN ||
+  process.env.STREAM_INVOKER_ARN;
 
 if (invokerArn) {
   app.node.setContext("gatewayInvokerArn", invokerArn);
@@ -35,5 +37,16 @@ const runtime = new RuntimeStack(app, "AgenticTargetIdRuntime", {
   runtimeInvokerArn: invokerArn,
 });
 runtime.addDependency(gateway);
+
+const stream = new StreamStack(app, "AgenticTargetIdStream", {
+  env,
+  description:
+    "Agentic Target ID — Stream Lambda SSE bridge (Story 4.1)",
+  agentRuntimeArn: runtime.agentRuntimeArn,
+  streamInvokerArn: invokerArn,
+});
+stream.addDependency(runtime);
+// Stream Lambda may InvokeAgentRuntime; browsers never get this grant (AD-1).
+runtime.grantInvoke(stream.streamFunction);
 
 app.synth();

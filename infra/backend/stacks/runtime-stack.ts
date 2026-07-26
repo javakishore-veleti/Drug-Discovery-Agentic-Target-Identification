@@ -28,6 +28,7 @@ export class RuntimeStack extends cdk.Stack {
   public readonly agentRuntimeArn: string;
   public readonly agentRuntimeId: string;
   public readonly memoryId: string;
+  private readonly runtime: agentcore.Runtime;
 
   constructor(scope: Construct, id: string, props: RuntimeStackProps) {
     super(scope, id, props);
@@ -68,6 +69,7 @@ export class RuntimeStack extends cdk.Stack {
         AGENTCORE_ACTOR_ID: "agentic_target_id",
       },
     });
+    this.runtime = runtime;
 
     // Bedrock model invoke — cross-region inference profiles (e.g. us.anthropic.*)
     // need foundation-model ARNs in multiple regions; match AWS Runtime IAM guidance.
@@ -142,5 +144,10 @@ export class RuntimeStack extends cdk.Stack {
       description: "AGENTCORE_MEMORY_ID for Chat Session STM (Story 3.2)",
       exportName: "AgenticTargetId-AgentCoreMemoryId",
     });
+  }
+
+  /** Allow Stream Lambda (or other backends) to InvokeAgentRuntime — not browsers. */
+  public grantInvoke(grantee: iam.IGrantable): void {
+    this.runtime.grantInvoke(grantee);
   }
 }

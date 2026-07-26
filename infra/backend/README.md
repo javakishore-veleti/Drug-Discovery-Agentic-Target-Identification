@@ -6,6 +6,7 @@
 | --- | --- |
 | `AgenticTargetIdGateway` | AgentCore Gateway + pubmed / clinicaltrials / chembl Lambdas |
 | `AgenticTargetIdRuntime` | AgentCore Runtime (ARM64 agent) + Memory STM (`AGENTCORE_MEMORY_ID`) |
+| `AgenticTargetIdStream` | Stream Lambda SSE bridge + IAM Function URL (Story 4.1) |
 
 Gateway tools:
 
@@ -29,11 +30,14 @@ cd infra/backend
 npm install
 export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
 # Gateway only, or Gateway + Runtime (Story 3.1):
-npx cdk deploy AgenticTargetIdGateway AgenticTargetIdRuntime --require-approval never \
+npx cdk deploy AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream \
+  --require-approval never \
   -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
 ```
 
 Copy `GatewayUrl` into `agents/unified-research-agent/.env` as `AGENTCORE_GATEWAY_URL` for local agent CLI. Runtime receives the same URL via env automatically.
+
+Stream smoke (SigV4 Function URL — not Runtime IAM): [`docs/stream.md`](../../docs/stream.md).
 
 ## Outputs
 
@@ -47,6 +51,7 @@ Copy `GatewayUrl` into `agents/unified-research-agent/.env` as `AGENTCORE_GATEWA
 | `AgentRuntimeArn` | `InvokeAgentRuntime` / smoke (`AGENT_RUNTIME_ARN`) |
 | `BedrockModelId` | Pinned AD-6 model on Runtime |
 | `AgentCoreMemoryId` | Set as `AGENTCORE_MEMORY_ID` on Runtime (Story 3.2) |
+| `StreamUrl` | IAM Function URL for SSE clients (`STREAM_URL`) — never give browsers Runtime IAM |
 
 AgentCore Gateway may expose wire MCP names as `${target}___${tool}`. The agent normalizes to logical AD-3 names.
 
