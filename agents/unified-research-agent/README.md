@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Stories **1.1–1.4** (Epic 1), **2.1–2.4** (Gateway three tools), **3.1** (AgentCore Runtime container): pinned model, research-assist prompt, evidence tools via Gateway MCP when configured. Memory / Stream / Cognito UI later.
+Stories **1.1–1.4** (Epic 1), **2.1–2.4** (Gateway), **3.1–3.3** (AgentCore Runtime + Memory + Herceptin multi-turn smoke): pinned model, research-assist prompt, Gateway MCP tools, in-session Memory. Stream / Cognito UI later.
 
 ## Prerequisites
 
@@ -206,7 +206,13 @@ export AGENT_RUNTIME_ARN=...
 python scripts/smoke_runtime_memory_two_turn.py
 ```
 
+Herceptin mechanism → cardiotoxicity (Story 3.3 / Epic 3 complete):
+
+```bash
+export AGENT_RUNTIME_ARN=...
+python scripts/smoke_runtime_herceptin_multiturn.py
+```
+
 ## Out of scope (later stories)
 
-- Herceptin multi-turn Runtime smoke (Story 3.3)
 - Stream Lambda, Cognito, React UI (Epics 4–5)

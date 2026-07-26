@@ -87,6 +87,25 @@ python scripts/smoke_runtime_memory_two_turn.py
 Expect `ok: true`, `memory: true` / `memory_id_configured: true`, and turn 2 naming trastuzumab/Herceptin.
 Runtime env must include `AGENTCORE_MEMORY_ID` (CDK output `AgentCoreMemoryId`).
 
+## Herceptin multi-turn Runtime smoke (Story 3.3 / Epic 3)
+
+Same `runtimeSessionId`. Proves FR10 + FR17 on AgentCore with Gateway tools + Memory.
+
+| Turn | Prompt |
+| --- | --- |
+| 1 | What is the mechanism of action of Herceptin? |
+| 2 | Which patient populations are most vulnerable to its cardiotoxicity? |
+
+```bash
+cd agents/unified-research-agent
+export AGENT_RUNTIME_ARN=arn:aws:bedrock-agentcore:us-east-1:ACCOUNT:runtime/RUNTIME_ID
+export AWS_REGION=us-east-1
+python scripts/smoke_runtime_herceptin_multiturn.py
+```
+
+Expect `ok: true`, turn 2 still in Herceptin/HER2 context (drug name not restated in the prompt),
+research-assist boundary held, and at least one PMID/NCT/ChEMBL when tools return them.
+
 ## Destroy when idle
 
 ```bash
@@ -96,7 +115,6 @@ npx cdk destroy AgenticTargetIdRuntime AgenticTargetIdGateway --force
 
 CDK bootstrap / log retention leftovers may remain (AD-11).
 
-## Out of scope (Story 3.3+)
+## Out of scope (Epic 4+)
 
-- Herceptin multi-turn Runtime smoke (mechanism → cardiotoxicity)
-- Stream Lambda / Cognito UI
+- Stream Lambda / Cognito / React UI
