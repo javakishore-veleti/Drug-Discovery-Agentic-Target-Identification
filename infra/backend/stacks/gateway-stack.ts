@@ -18,6 +18,13 @@ const V1_LOGICAL_TOOLS = ["pubmed", "clinicaltrials", "chembl"] as const;
  * - Shared error contract: docs/tool-result-contract.md
  */
 export class GatewayStack extends cdk.Stack {
+  /** MCP endpoint URL for Runtime / local SigV4 clients. */
+  public readonly gatewayUrl: string;
+  /** Gateway ARN for IAM grants. */
+  public readonly gatewayArn: string;
+  /** Gateway identifier. */
+  public readonly gatewayId: string;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -154,6 +161,10 @@ export class GatewayStack extends cdk.Stack {
       ]),
     });
 
+    this.gatewayUrl = gateway.gatewayUrl ?? "";
+    this.gatewayArn = gateway.gatewayArn;
+    this.gatewayId = gateway.gatewayId;
+
     const invokerArn =
       (this.node.tryGetContext("gatewayInvokerArn") as string | undefined) ||
       process.env.GATEWAY_INVOKER_ARN;
@@ -164,17 +175,17 @@ export class GatewayStack extends cdk.Stack {
     }
 
     new cdk.CfnOutput(this, "GatewayUrl", {
-      value: gateway.gatewayUrl ?? "",
+      value: this.gatewayUrl,
       description: "AgentCore Gateway MCP endpoint URL",
       exportName: "AgenticTargetId-GatewayUrl",
     });
     new cdk.CfnOutput(this, "GatewayId", {
-      value: gateway.gatewayId,
+      value: this.gatewayId,
       description: "AgentCore Gateway identifier",
       exportName: "AgenticTargetId-GatewayId",
     });
     new cdk.CfnOutput(this, "GatewayArn", {
-      value: gateway.gatewayArn,
+      value: this.gatewayArn,
       description: "AgentCore Gateway ARN",
       exportName: "AgenticTargetId-GatewayArn",
     });

@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Stories **1.1–1.4** (Epic 1) plus **2.1–2.3** (Gateway PubMed + ClinicalTrials + ChEMBL): pinned model, research-assist prompt, evidence tools via local adapters or AgentCore Gateway MCP. No Runtime / Stream / Cognito UI yet.
+Stories **1.1–1.4** (Epic 1), **2.1–2.4** (Gateway three tools), **3.1** (AgentCore Runtime container): pinned model, research-assist prompt, evidence tools via Gateway MCP when configured. Memory / Stream / Cognito UI later.
 
 ## Prerequisites
 
@@ -186,6 +186,19 @@ PYTHONPATH=. python -m unified_research_agent --smoke-epic2
 # exact V1 tools + forced empty-query errors + post-failure agent turn
 ```
 
+## AgentCore Runtime (Story 3.1)
+
+ARM64 Docker image + FastAPI `/invocations` + `/ping` — see [`docs/runtime.md`](../../docs/runtime.md).
+
+```bash
+# build from repo root
+docker buildx build --platform linux/arm64 \
+  -f agents/unified-research-agent/Dockerfile -t agentic-target-id-ura:local --load .
+```
+
+CDK: `infra/backend` stack `AgenticTargetIdRuntime` sets `BEDROCK_MODEL_ID` and `AGENTCORE_GATEWAY_URL`.
+
 ## Out of scope (later stories)
 
-- AgentCore Runtime, Stream Lambda, Cognito, React UI (Epics 3–5)
+- AgentCore Memory (Story 3.2)
+- Stream Lambda, Cognito, React UI (Epics 4–5)

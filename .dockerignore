@@ -1,0 +1,20 @@
+# CDK Docker asset context = repo root (Runtime image)
+.git
+**/.venv
+**/node_modules
+**/cdk.out
+**/dist
+**/__pycache__
+**/*.pyc
+**/.env
+**/.env.*
+!**/.env.example
+**/BMAD-HandsOn*.md
+**/_bmad-output
+**/.agents
+**/web
+**/infra/backend/cdk.out
+**/infra/backend/node_modules
+**/.DS_Store
+**/*.md
+!agents/unified-research-agent/README.md

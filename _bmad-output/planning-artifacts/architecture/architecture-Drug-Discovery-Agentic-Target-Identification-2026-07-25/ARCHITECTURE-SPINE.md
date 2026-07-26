@@ -85,7 +85,7 @@ flowchart LR
 
 - **Binds:** Agent runtime, Bedrock access, FR-10, PRD Open Q #1
 - **Prevents:** Silent model drift across deploys / “latest in account” nondeterminism
-- **Rule:** Pin Bedrock model id `us.anthropic.claude-sonnet-4-20250514-v1:0` (US inference profile) in agent config + CDK context. Region default `us-east-1`. Operator must enable model access before demo. Change requires a deliberate config bump, not an ambient default. `[ASSUMPTION: account can enable this Sonnet 4 inference profile in us-east-1; if blocked, swap pin to anthropic.claude-3-7-sonnet-20250219-v1:0 per AgentCore Gateway quickstart and update Stack table]`
+- **Rule:** Pin Bedrock model id `us.anthropic.claude-sonnet-4-6` (US inference profile) in agent config + CDK context / Runtime env. Region default `us-east-1`. Operator must enable model access before demo. Change requires a deliberate config bump, not an ambient default. `[UPDATED 2026-07-25: original pin us.anthropic.claude-sonnet-4-20250514-v1:0 is Legacy/EOL in many accounts; active pin is Sonnet 4.6. Fallback if 4.6 unavailable: us.anthropic.claude-sonnet-4-5-20250929-v1:0]`
 
 ### AD-7 — In-session memory only `[ADOPTED]`
 
@@ -190,7 +190,7 @@ flowchart TB
 | Node.js (CDK + `web/`) | 22.x |
 | Python (agent + tool Lambdas) | 3.12 |
 | `strands-agents` | ^1.47 |
-| Bedrock model (pinned) | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| Bedrock model (pinned) | `us.anthropic.claude-sonnet-4-6` |
 | Amazon Bedrock AgentCore | Runtime + Gateway (MCP) + Memory — managed service APIs / CDK `aws-bedrockagentcore` constructs as available in aws-cdk-lib 2.262 |
 | React + TypeScript | Vite + React 18+ TypeScript (`web/`) |
 | Stream Lambda runtime | Python 3.12 |
