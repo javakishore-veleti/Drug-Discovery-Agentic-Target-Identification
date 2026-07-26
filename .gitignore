@@ -149,6 +149,9 @@ activemq-data/
 
 # Environments
 .env
+.env.*
+!.env.example
+web/.env.local
 .envrc
 .venv
 env/
@@ -223,8 +226,9 @@ _bmad/config.user.toml
 _bmad/custom/config.user.toml
 # Keep tracked: _bmad-output/planning-artifacts/
 
-# CDK / Node (infra)
+# CDK / Node (infra + web)
 node_modules/
 cdk.out/
 infra/backend/dist/
+web/dist/
 *.tsbuildinfo

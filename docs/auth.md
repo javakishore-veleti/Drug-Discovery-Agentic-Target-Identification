@@ -78,8 +78,11 @@ Expect:
 
 Ops CLI SigV4 with long-lived IAM (Story 4.1) may still work if `gatewayInvokerArn` was granted — that is for builders only, not the browser path.
 
+## Web UI (Epic 5)
+
+Local Vite chat uses these same Outputs — see [web.md](./web.md).
+
 ## Out of scope
 
-- React hosted UI (Epic 5)
+- CloudFront / S3 hosting (Epic 6)
 - JWT authorizer on Function URL (Deferred)
-- Tool event mapping (Story 4.3)

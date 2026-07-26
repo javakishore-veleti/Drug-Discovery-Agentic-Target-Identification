@@ -100,6 +100,10 @@ python3 stream/scripts/smoke_stream_tools_and_stall.py
 - Structured JSON logs include `sessionId`, `requestId`, and `tool` when applicable
 - Soft stall: clients/smoke use a **300s** request timeout; Lambda timeout is 5 minutes — no terminal event → client treats as terminal error/timeout
 
-## Epic 4 complete
+## Browser CORS note (Epic 5)
 
-Auth (Identity Pool SigV4) + Stream SSE + tool mapping + observability. Next: Epic 5 React UI.
+Function URL CORS is configured in CDK. The Stream Lambda handler must **not** also emit `Access-Control-Allow-Origin` (browsers reject duplicate values).
+
+## Epic 4 complete → Epic 5 UI
+
+Auth (Identity Pool SigV4) + Stream SSE + tool mapping + observability. Chat UI: [web.md](./web.md).

@@ -341,17 +341,16 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         or "POST"
     ).upper()
 
+    # CORS is owned by the Function URL config (CDK). Do not also emit
+    # Access-Control-* here — browsers reject duplicated Allow-Origin values.
+
     if method == "OPTIONS":
-        return {
-            "statusCode": 204,
-            "headers": _cors_headers(),
-            "body": "",
-        }
+        return {"statusCode": 204, "headers": {}, "body": ""}
 
     if method != "POST":
         return {
             "statusCode": 405,
-            "headers": {**_cors_headers(), "Content-Type": "application/json"},
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": "POST required"}),
         }
 
@@ -360,7 +359,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {
             "statusCode": 400,
-            "headers": {**_cors_headers(), "Content-Type": "application/json"},
+            "headers": {"Content-Type": "application/json"},
             "body": json.dumps({"error": "body must be JSON"}),
         }
 
@@ -384,18 +383,9 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     return {
         "statusCode": status,
         "headers": {
-            **_cors_headers(),
             "Content-Type": "text/event-stream; charset=utf-8",
             "Cache-Control": "no-cache",
             "X-Content-Type-Options": "nosniff",
         },
         "body": sse_body,
-    }
-
-
-def _cors_headers() -> dict[str, str]:
-    return {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "authorization,content-type,x-amz-date,x-amz-security-token",
-        "Access-Control-Allow-Methods": "POST,OPTIONS",
     }

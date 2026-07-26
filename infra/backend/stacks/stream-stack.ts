@@ -89,6 +89,7 @@ export class StreamStack extends cdk.Stack {
           "content-type",
           "x-amz-date",
           "x-amz-security-token",
+          "x-amz-content-sha256",
         ],
       },
     });
