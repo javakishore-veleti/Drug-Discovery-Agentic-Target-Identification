@@ -326,6 +326,7 @@ Clear technical docs cover prerequisites, install, deploy, user create, demo smo
 - Shipping more than three Gateway Tools in V1
 - Hard production SLAs or 24/7 on-call
 - Separate AgentCore Runtimes / CDK stacks for domain specialist agents (local CLI suite only — see addendum §K)
+- Full platform maturity stack in V1 (evals harness, OpenTelemetry, Grafana/ELK, CloudTrail-as-product, blue/green, Kafka/MSK, SRE on-call/SLOs, HA/latency SLAs, vector DB/RAG) — catalogued for later in `_bmad-output/planning-artifacts/roadmap-platform-maturity.md` (do not expand this PRD with those chapters)
 
 ## 6. MVP Scope
 
