@@ -1,0 +1,139 @@
+# BMAD implementation sprint status — Agentic Target ID
+# Generated as a mastery/reference snapshot after V1 + local specialist scaffold.
+# planning-artifacts remain canonical for requirements.
+
+project: Drug-Discovery-Agentic-Target-Identification
+working_name: Agentic Target ID
+updated: 2026-07-26
+sprint: v1-pilot-complete
+
+epics:
+  - id: 1
+    title: "Local literature research loop"
+    status: done
+    stories:
+      - id: 1.1
+        status: done
+        file: stories/1.1-scaffold-agent-package-pinned-bedrock-model.md
+      - id: 1.2
+        status: done
+        file: stories/1.2-research-assist-system-prompt.md
+      - id: 1.3
+        status: done
+        file: stories/1.3-local-pubmed-tool-with-ids.pmid.md
+      - id: 1.4
+        status: done
+        file: stories/1.4-local-herceptin-synthesis-with-pmid-surfacing.md
+  - id: 2
+    title: "Governed three-tool evidence gateway"
+    status: done
+    stories:
+      - id: 2.1
+        status: done
+        file: stories/2.1-gateway-scaffold-pubmed-as-mcp-lambda-target.md
+      - id: 2.2
+        status: done
+        file: stories/2.2-clinicaltrials.gov-gateway-tool-clinicaltrials.md
+      - id: 2.3
+        status: done
+        file: stories/2.3-chembl-gateway-tool-chembl.md
+      - id: 2.4
+        status: done
+        file: stories/2.4-enforce-exactly-three-v1-tools-shared-error-contract.md
+  - id: 3
+    title: "AgentCore Runtime + session memory"
+    status: done
+    stories:
+      - id: 3.1
+        status: done
+        file: stories/3.1-containerize-agent-for-agentcore-runtime.md
+      - id: 3.2
+        status: done
+        file: stories/3.2-wire-agentcore-memory-for-chat-session-turns.md
+      - id: 3.3
+        status: done
+        file: stories/3.3-herceptin-multi-turn-runtime-smoke.md
+  - id: 4
+    title: "Secure streaming research turns"
+    status: done
+    stories:
+      - id: 4.1
+        status: done
+        file: stories/4.1-stream-lambda-sse-bridge-to-agentcore-runtime.md
+      - id: 4.2
+        status: done
+        file: stories/4.2-cognito-identity-pool-sigv4-to-function-url.md
+      - id: 4.3
+        status: done
+        file: stories/4.3-map-tool-activity-failures-to-stream-events.md
+      - id: 4.4
+        status: done
+        file: stories/4.4-stream-observability-stall-terminal-state.md
+  - id: 5
+    title: "Authenticated research chat"
+    status: done
+    stories:
+      - id: 5.1
+        status: done
+        file: stories/5.1-vite-react-app-scaffold-cognito-sign-in-out.md
+      - id: 5.2
+        status: done
+        file: stories/5.2-chat-ui-with-disclaimer-sigv4-stream-client.md
+      - id: 5.3
+        status: done
+        file: stories/5.3-render-tool_use-tool_result-error-in-transcript.md
+      - id: 5.4
+        status: done
+        file: stories/5.4-herceptin-e2e-multi-turn-in-the-ui.md
+  - id: 6
+    title: "Deployable pilot lifecycle"
+    status: done
+    stories:
+      - id: 6.1
+        status: done
+        file: stories/6.1-cdk-backend-stack-documentation-alignment.md
+      - id: 6.2
+        status: done
+        file: stories/6.2-cdk-frontend-stack-s3-cloudfront.md
+      - id: 6.3
+        status: done
+        file: stories/6.3-documented-outputs-create-user-smoke-path.md
+      - id: 6.4
+        status: done
+        file: stories/6.4-cdk-destroy-teardown-docs.md
+  - id: L
+    title: "Local specialist agent suite"
+    status: done
+    stories:
+      - id: L.1
+        status: done
+        file: stories/L.1-shared-framework-contract.md
+      - id: L.2
+        status: done
+        file: stories/L.2-drug-profile-analysis-agent-local.md
+      - id: L.3
+        status: done
+        file: stories/L.3-patient-risk-assessment-agent-local.md
+      - id: L.4
+        status: done
+        file: stories/L.4-pathway-mapping-agent-local.md
+      - id: L.5
+        status: done
+        file: stories/L.5-cardioprotection-target-agent-local.md
+      - id: L.6
+        status: done
+        file: stories/L.6-drug-design-hypothesis-agent-local.md
+      - id: L.7
+        status: done
+        file: stories/L.7-medical-supervisor-local-stubs.md
+      - id: L.8
+        status: done
+        file: stories/L.8-genetic-risk-assessment-local.md
+      - id: L.9
+        status: done
+        file: stories/L.9-unified-prompt-domain-consolidation.md
+
+notes:
+  - V1 cloud path (Epics 1–6) implemented and smoked; app stacks destroyed after pilot.
+  - Epic L specialists are local-only scaffolds with PRD addendum §K; production remains unified-research-agent.
+  - These implementation-artifacts are intentionally committed as a BMAD reference set.
