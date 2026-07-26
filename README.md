@@ -107,6 +107,8 @@ This repo uses **[BMAD Method](https://github.com/bmad-code-org/BMAD-METHOD)** f
 
 Do not expect those chapters inside the V1 PRD body.
 
+**Started:** Golden evals (M1.1 / M1.2) — see [`docs/evals.md`](docs/evals.md).
+
 ### If you know Kiro’s `.kiro/specs/<feature>/` layout
 
 Kiro packs requirements + design + tasks in one feature folder. BMAD spreads the same ideas across two folders:

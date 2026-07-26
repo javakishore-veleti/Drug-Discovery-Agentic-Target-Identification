@@ -224,6 +224,9 @@ __marimo__/
 _bmad/config.user.toml
 _bmad/custom/config.user.toml
 # Tracked for master reference: _bmad-output/planning-artifacts/ and _bmad-output/implementation-artifacts/
+# Eval report bodies (model text); keep directory via .gitkeep
+_bmad-output/eval-reports/*
+!_bmad-output/eval-reports/.gitkeep
 
 # CDK / Node (infra + web)
 node_modules/

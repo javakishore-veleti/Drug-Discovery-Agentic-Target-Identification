@@ -84,6 +84,20 @@ PYTHONPATH=. python -m unified_research_agent \
 
 Expect: `pubmed` tool use, a short synthesis, and at least one `PMID …` from the tool’s `ids.pmid` in the answer.
 
+## Golden evals (Stories M1.1 / M1.2)
+
+Documented in [`docs/evals.md`](../../docs/evals.md).
+
+```bash
+# Offline harness check (no Bedrock)
+PYTHONPATH=. python evals/run_golden.py --dry-run
+
+# Live: MoA + cardiotoxicity follow-up + clinical refusal (needs AWS + Bedrock)
+PYTHONPATH=. python evals/run_golden.py
+```
+
+Reports: `_bmad-output/eval-reports/golden-latest.json` (gitignored).
+
 ## Run (trivial smoke)
 
 From this directory (with venv active):

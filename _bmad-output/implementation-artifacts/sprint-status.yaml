@@ -136,10 +136,10 @@ epics:
     status: backlog
     stories:
       - id: M1.1
-        status: backlog
+        status: done
         file: stories/M1.1-golden-prompt-eval-suite.md
       - id: M1.2
-        status: backlog
+        status: done
         file: stories/M1.2-fr-12-negative-probes-in-eval-harness.md
       - id: M1.3
         status: backlog
