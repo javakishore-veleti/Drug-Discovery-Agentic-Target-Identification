@@ -897,3 +897,17 @@ All validations complete!
 Reply C and I’ll close planning, commit epics.md (+ HandsOn if changed), then start Story 1.1.
 
 ```
+
+## Step - 23 - My Reply
+```text
+[C] Complete Workflow
+
+Close planning. Commit epics.md and related planning artifacts if not already committed.
+Then start Story 1.1: Scaffold agent package + pinned Bedrock model.
+```
+
+## Step - 23 - Cursor Reply
+```text
+Closing the epics workflow, committing planning artifacts, then implementing Story 1.1.
+
+```
