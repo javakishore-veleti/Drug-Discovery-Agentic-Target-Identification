@@ -42,6 +42,8 @@ export class StreamStack extends cdk.Stack {
       handler: "handler.lambda_handler",
       timeout: cdk.Duration.minutes(5),
       memorySize: 512,
+      // Story M2.1 — X-Ray traces for Stream turns (OTel-equivalent AWS path).
+      tracing: lambda.Tracing.ACTIVE,
       description:
         "SSE Stream bridge to AgentCore Runtime (Story 4.1) — no browser→Runtime",
       logGroup,

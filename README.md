@@ -107,7 +107,7 @@ This repo uses **[BMAD Method](https://github.com/bmad-code-org/BMAD-METHOD)** f
 
 Do not expect those chapters inside the V1 PRD body.
 
-**Started:** Golden evals (M1.1 / M1.2) — see [`docs/evals.md`](docs/evals.md).
+**Started:** Golden evals — [`docs/evals.md`](docs/evals.md). Ops dashboard/alarms/metrics — [`docs/ops.md`](docs/ops.md). Security/HA — [`docs/security.md`](docs/security.md).
 
 ### If you know Kiro’s `.kiro/specs/<feature>/` layout
 

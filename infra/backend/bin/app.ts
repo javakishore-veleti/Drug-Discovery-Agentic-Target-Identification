@@ -3,6 +3,7 @@ import * as cdk from "aws-cdk-lib";
 import { AuthStack } from "../stacks/auth-stack";
 import { FrontendStack } from "../stacks/frontend-stack";
 import { GatewayStack } from "../stacks/gateway-stack";
+import { OpsStack } from "../stacks/ops-stack";
 import { RuntimeStack } from "../stacks/runtime-stack";
 import { StreamStack } from "../stacks/stream-stack";
 
@@ -73,5 +74,16 @@ const frontend = new FrontendStack(app, "AgenticTargetIdFrontend", {
 });
 frontend.addDependency(auth);
 frontend.addDependency(stream);
+
+// --- Ops (Stories M1.3 / M1.4) — CloudWatch dashboard + SNS alarms
+const ops = new OpsStack(app, "AgenticTargetIdOps", {
+  env,
+  description:
+    "Agentic Target ID — CloudWatch ops dashboard + Stream/tool alarms (M1.3–M1.4)",
+  streamFunctionName: stream.streamFunctionName,
+  toolFunctionNames: gateway.toolFunctionNames,
+});
+ops.addDependency(stream);
+ops.addDependency(gateway);
 
 app.synth();

@@ -18,8 +18,9 @@ TypeScript CDK app under `infra/backend/` deploys the V1 slice: **Backend** (Gat
 | --- | --- | --- |
 | `AgenticTargetIdGateway` | AgentCore Gateway + 3 tool Lambdas | tool log groups |
 | `AgenticTargetIdRuntime` | Runtime container + Memory STM | Memory expiry 7d; Runtime service logs |
-| `AgenticTargetIdStream` | SSE Stream Lambda + IAM Function URL | Stream log group |
+| `AgenticTargetIdStream` | SSE Stream Lambda + IAM Function URL (+ X-Ray) | Stream log group |
 | `AgenticTargetIdAuth` | Cognito User Pool + Identity Pool → Stream SigV4 | — |
+| `AgenticTargetIdOps` | CloudWatch dashboard + SNS alarms (M1.3–M1.4) | — |
 
 **IAM (AD-12, summary):** Stream invokes Runtime + writes logs; Runtime invokes Bedrock pin + Gateway + Memory + logs; each tool Lambda reaches only its public API + logs; browsers never receive Runtime IAM (AD-1).
 
@@ -28,10 +29,13 @@ cd infra/backend
 npm install
 export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
 npx cdk deploy \
-  AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream AgenticTargetIdAuth \
+  AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream AgenticTargetIdAuth AgenticTargetIdOps \
   --require-approval never \
-  -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
+  -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN" \
+  -c opsAlertEmail="you@example.com"   # optional; confirm SNS email
 ```
+
+Ops dashboard / alarms / EMF metrics / CloudTrail / budgets: **[ops.md](ops.md)**. Security / HA honesty: **[security.md](security.md)**.
 
 ### Required Outputs (Backend)
 
@@ -115,7 +119,7 @@ export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output t
 # Frontend first, then Backend (dependency-friendly order)
 npx cdk destroy AgenticTargetIdFrontend --force
 npx cdk destroy \
-  AgenticTargetIdAuth AgenticTargetIdStream AgenticTargetIdRuntime AgenticTargetIdGateway \
+  AgenticTargetIdOps AgenticTargetIdAuth AgenticTargetIdStream AgenticTargetIdRuntime AgenticTargetIdGateway \
   --force
 ```
 
@@ -136,6 +140,9 @@ Re-bootstrap only if you delete `CDKToolkit` intentionally.
 
 - [auth.md](./auth.md) — Cognito → Identity Pool → Stream SigV4
 - [stream.md](./stream.md) — Stream events + observability
+- [ops.md](./ops.md) — dashboard, alarms, X-Ray, EMF metrics, CloudTrail, budgets
+- [security.md](./security.md) — threat model, secrets pattern, HA honesty
+- [evals.md](./evals.md) — golden-prompt evals (M1.1 / M1.2)
 - [web.md](./web.md) — local Vite UI
 - [runtime.md](./runtime.md) — Runtime packaging / Memory
 - [tool-result-contract.md](./tool-result-contract.md) — tool_result shape

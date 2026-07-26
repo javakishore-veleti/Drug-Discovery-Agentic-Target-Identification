@@ -10,8 +10,9 @@ Single TypeScript CDK app for the V1 pilot. Prefer consolidating here rather tha
 | --- | --- | --- |
 | `AgenticTargetIdGateway` | Backend | AgentCore Gateway + pubmed / clinicaltrials / chembl (7-day tool logs) |
 | `AgenticTargetIdRuntime` | Backend | AgentCore Runtime (ARM64) + Memory STM |
-| `AgenticTargetIdStream` | Backend | Stream Lambda SSE + IAM Function URL (7-day logs) |
+| `AgenticTargetIdStream` | Backend | Stream Lambda SSE + IAM Function URL + X-Ray (7-day logs) |
 | `AgenticTargetIdAuth` | Backend | Cognito User Pool + Identity Pool (no self-signup) |
+| `AgenticTargetIdOps` | Ops | CloudWatch dashboard + SNS alarms (M1.3–M1.4) |
 | `AgenticTargetIdFrontend` | Frontend | S3 + CloudFront; injects `/config.json`; Output `FrontendUrl` |
 
 ## Deploy (us-east-1 or CDK context region)
@@ -23,9 +24,10 @@ export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output t
 
 # Backend only
 npx cdk deploy \
-  AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream AgenticTargetIdAuth \
+  AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream AgenticTargetIdAuth AgenticTargetIdOps \
   --require-approval never \
-  -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
+  -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN" \
+  -c opsAlertEmail="you@example.com"
 
 # Frontend (needs Auth + Stream Outputs via stack refs)
 npx cdk deploy AgenticTargetIdFrontend \

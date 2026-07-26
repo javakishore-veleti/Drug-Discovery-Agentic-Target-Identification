@@ -24,6 +24,8 @@ export class GatewayStack extends cdk.Stack {
   public readonly gatewayArn: string;
   /** Gateway identifier. */
   public readonly gatewayId: string;
+  /** Tool Lambda names for ops dashboards/alarms (M1.3 / M1.4). */
+  public readonly toolFunctionNames: string[] = [];
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -164,6 +166,11 @@ export class GatewayStack extends cdk.Stack {
     this.gatewayUrl = gateway.gatewayUrl ?? "";
     this.gatewayArn = gateway.gatewayArn;
     this.gatewayId = gateway.gatewayId;
+    this.toolFunctionNames.push(
+      pubmedFn.functionName,
+      clinicaltrialsFn.functionName,
+      chemblFn.functionName,
+    );
 
     const invokerArn =
       (this.node.tryGetContext("gatewayInvokerArn") as string | undefined) ||

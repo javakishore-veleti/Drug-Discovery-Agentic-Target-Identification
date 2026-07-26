@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import uuid
 from typing import Any
 
@@ -33,6 +34,45 @@ def _env(name: str, default: str = "") -> str:
 def _log(msg: str, **fields: Any) -> None:
     payload = {"msg": msg, **{k: v for k, v in fields.items() if v is not None}}
     logger.info(json.dumps(payload, default=str))
+
+
+def _emf_turn(
+    *,
+    function_name: str,
+    duration_ms: float,
+    tool_use_count: int,
+    tool_error_count: int,
+    turn_error: int,
+) -> None:
+    """
+    Embedded Metric Format for Story M2.2 (namespace AgenticTargetId/Stream).
+
+    Surfaces TurnDurationMs / ToolUseCount / ToolErrors / TurnErrors in CloudWatch
+    without a custom metrics SDK dependency.
+    """
+    payload = {
+        "_aws": {
+            "Timestamp": int(time.time() * 1000),
+            "CloudWatchMetrics": [
+                {
+                    "Namespace": "AgenticTargetId/Stream",
+                    "Dimensions": [["FunctionName"]],
+                    "Metrics": [
+                        {"Name": "TurnDurationMs", "Unit": "Milliseconds"},
+                        {"Name": "ToolUseCount", "Unit": "Count"},
+                        {"Name": "ToolErrors", "Unit": "Count"},
+                        {"Name": "TurnErrors", "Unit": "Count"},
+                    ],
+                }
+            ],
+        },
+        "FunctionName": function_name or "agentic-target-id-stream",
+        "TurnDurationMs": round(duration_ms, 2),
+        "ToolUseCount": int(tool_use_count),
+        "ToolErrors": int(tool_error_count),
+        "TurnErrors": int(turn_error),
+    }
+    print(json.dumps(payload))
 
 
 def _mint_session_id() -> str:
@@ -244,7 +284,12 @@ def _build_sse_turn(
     message: str,
     request_id: str,
     force_tool_error: str = "",
+    function_name: str = "",
 ) -> tuple[str, int]:
+    started = time.monotonic()
+    turn_error = 0
+    tool_use_count = 0
+    tool_error_count = 0
     parts: list[str] = [
         _sse(
             {
@@ -266,6 +311,13 @@ def _build_sse_turn(
             )
         )
         parts.append(_sse({"type": "done", "sessionId": session_id}))
+        _emf_turn(
+            function_name=function_name,
+            duration_ms=(time.monotonic() - started) * 1000,
+            tool_use_count=0,
+            tool_error_count=0,
+            turn_error=1,
+        )
         return "".join(parts), 400
 
     try:
@@ -282,6 +334,12 @@ def _build_sse_turn(
             force_tool_error=force_tool_error,
         )
         tool_events = _tool_events_from_payload(payload)
+        tool_use_count = sum(1 for e in tool_events if e.get("type") == "tool_use")
+        tool_error_count = sum(
+            1
+            for e in tool_events
+            if e.get("type") == "tool_result" and e.get("status") == "error"
+        )
         _append_tool_stream_events(
             parts,
             tool_events,
@@ -302,9 +360,10 @@ def _build_sse_turn(
             sessionId=session_id,
             requestId=request_id,
             chars=len(answer),
-            toolCount=sum(1 for e in tool_events if e.get("type") == "tool_use"),
+            toolCount=tool_use_count,
         )
     except (ClientError, BotoCoreError, json.JSONDecodeError, RuntimeError, ValueError) as exc:
+        turn_error = 1
         _log(
             "runtime_invoke_failed",
             sessionId=session_id,
@@ -329,6 +388,13 @@ def _build_sse_turn(
     finally:
         parts.append(_sse({"type": "done", "sessionId": session_id}))
         _log("stream_done", sessionId=session_id, requestId=request_id)
+        _emf_turn(
+            function_name=function_name,
+            duration_ms=(time.monotonic() - started) * 1000,
+            tool_use_count=tool_use_count,
+            tool_error_count=tool_error_count,
+            turn_error=turn_error,
+        )
 
     return "".join(parts), 200
 
@@ -366,6 +432,9 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     session_id = _session_from_body(body) or _mint_session_id()
     message = _message_from_body(body)
     force_tool_error = _force_tool_error_from_body(body)
+    function_name = getattr(context, "function_name", None) or _env(
+        "AWS_LAMBDA_FUNCTION_NAME", "agentic-target-id-stream"
+    )
     _log(
         "stream_request",
         sessionId=session_id,
@@ -378,6 +447,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         message=message,
         request_id=request_id,
         force_tool_error=force_tool_error,
+        function_name=function_name,
     )
 
     return {

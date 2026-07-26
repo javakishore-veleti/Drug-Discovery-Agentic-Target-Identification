@@ -133,7 +133,7 @@ epics:
         file: stories/L.9-unified-prompt-domain-consolidation.md
   - id: M1
     title: "Agent evals + CloudWatch ops (V1.5)"
-    status: backlog
+    status: done
     stories:
       - id: M1.1
         status: done
@@ -142,39 +142,39 @@ epics:
         status: done
         file: stories/M1.2-fr-12-negative-probes-in-eval-harness.md
       - id: M1.3
-        status: backlog
+        status: done
         file: stories/M1.3-cloudwatch-dashboard-for-stream-and-tools.md
       - id: M1.4
-        status: backlog
+        status: done
         file: stories/M1.4-cloudwatch-alarms-operator-sns.md
   - id: M2
     title: "Deep observability + account audit notes (V2 platform)"
-    status: backlog
+    status: done
     stories:
       - id: M2.1
-        status: backlog
+        status: done
         file: stories/M2.1-opentelemetry-traces-stream-runtime-tools.md
       - id: M2.2
-        status: backlog
+        status: done
         file: stories/M2.2-custom-metrics-latency-tool-errors-tokens.md
       - id: M2.3
-        status: backlog
+        status: done
         file: stories/M2.3-alert-runbook-not-on-call.md
       - id: M2.4
-        status: backlog
+        status: done
         file: stories/M2.4-cloudtrail-enablement-notes.md
       - id: M2.5
-        status: backlog
+        status: done
         file: stories/M2.5-bedrock-lambda-spend-alarms.md
   - id: M3
     title: "Optional retrieval and tool growth (V2 product, gated)"
     status: backlog
     stories:
       - id: M3.1
-        status: backlog
+        status: done
         file: stories/M3.1-retrieval-need-decision-record.md
       - id: M3.2
-        status: backlog
+        status: blocked
         file: stories/M3.2-vector-store-spike-gated.md
       - id: M3.3
         status: backlog
@@ -206,7 +206,7 @@ epics:
     status: backlog
     stories:
       - id: M5.1
-        status: backlog
+        status: done
         file: stories/M5.1-lightweight-threat-model.md
       - id: M5.2
         status: backlog
@@ -215,10 +215,10 @@ epics:
         status: backlog
         file: stories/M5.3-cognito-federation-sso-spike.md
       - id: M5.4
-        status: backlog
+        status: done
         file: stories/M5.4-secrets-manager-pattern-for-api-keys.md
       - id: M5.5
-        status: backlog
+        status: done
         file: stories/M5.5-ha-multi-az-expectations-doc.md
 
 notes:
