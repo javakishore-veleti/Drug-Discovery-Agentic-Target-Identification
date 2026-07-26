@@ -1,13 +1,10 @@
 """
-Stream Lambda — SSE bridge to AgentCore Runtime (Story 4.1 / AD-4 / AD-7).
+Stream Lambda — SSE bridge to AgentCore Runtime (Stories 4.1–4.4).
 
-Clients call this Function URL (SigV4 / IAM). They never invoke AgentCore Runtime
-directly and never hold Runtime IAM credentials (AD-1 / FR8).
-
-V1: Runtime returns a completed JSON turn; we map it into ordered SSE events and
-emit ``done`` only after that invoke finishes (or hard-aborts).
-``reasoning`` / ``tool_use`` / ``tool_result`` are reserved for Story 4.3 when
-Runtime exposes them — never fabricated (AD-5).
+Maps Runtime tool_events → tool_use / tool_result / error (AD-8).
+Never fabricates reasoning (AD-5). Structured logs include sessionId, requestId,
+and tool when applicable (Story 4.4). Soft stall budget aligns with 5-minute
+Lambda timeout (NFR-9).
 """
 
 from __future__ import annotations
@@ -24,7 +21,8 @@ from botocore.exceptions import BotoCoreError, ClientError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Soft stall budget alignment (NFR-9): keep Lambda timeout ≤ 5 minutes in CDK.
+# Soft stall budget (NFR-9 / Story 4.4): Lambda timeout is 5 minutes in CDK.
+_STALL_SECONDS = 300
 _TOKEN_CHUNK = 120
 
 
@@ -32,8 +30,12 @@ def _env(name: str, default: str = "") -> str:
     return (os.environ.get(name) or default).strip()
 
 
+def _log(msg: str, **fields: Any) -> None:
+    payload = {"msg": msg, **{k: v for k, v in fields.items() if v is not None}}
+    logger.info(json.dumps(payload, default=str))
+
+
 def _mint_session_id() -> str:
-    """Stream-owned Chat Session id (AD-7). Runtime requires ≥ 33 chars."""
     sid = "stream-" + uuid.uuid4().hex
     return sid if len(sid) >= 33 else sid.ljust(33, "0")
 
@@ -82,6 +84,14 @@ def _session_from_body(body: dict[str, Any]) -> str:
     return ""
 
 
+def _force_tool_error_from_body(body: dict[str, Any]) -> str:
+    for key in ("forceToolError", "force_tool_error"):
+        val = body.get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip().lower()
+    return ""
+
+
 def _sse(event: dict[str, Any]) -> str:
     return f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
@@ -105,26 +115,127 @@ def _extract_runtime_text(payload: dict[str, Any]) -> str:
     return json.dumps(payload)
 
 
-def _invoke_runtime(session_id: str, prompt: str) -> dict[str, Any]:
+def _tool_events_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    out = payload.get("output") if isinstance(payload, dict) else None
+    if isinstance(out, dict) and isinstance(out.get("tool_events"), list):
+        return [e for e in out["tool_events"] if isinstance(e, dict)]
+    if isinstance(payload.get("tool_events"), list):
+        return [e for e in payload["tool_events"] if isinstance(e, dict)]
+    return []
+
+
+def _reasoning_from_payload(payload: dict[str, Any]) -> list[str]:
+    """Only pass through reasoning the Runtime actually exposed (AD-5)."""
+    out = payload.get("output") if isinstance(payload, dict) else None
+    raw = None
+    if isinstance(out, dict):
+        raw = out.get("reasoning")
+    if raw is None:
+        raw = payload.get("reasoning")
+    if isinstance(raw, list):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    if isinstance(raw, str) and raw.strip():
+        return [raw.strip()]
+    return []
+
+
+def _invoke_runtime(
+    session_id: str,
+    prompt: str,
+    *,
+    force_tool_error: str = "",
+) -> dict[str, Any]:
     arn = _env("AGENT_RUNTIME_ARN")
     if not arn:
         raise RuntimeError("AGENT_RUNTIME_ARN is not configured on Stream Lambda")
     region = _env("AWS_REGION") or _env("AWS_DEFAULT_REGION") or "us-east-1"
     client = boto3.client("bedrock-agentcore", region_name=region)
+    body: dict[str, Any] = {"input": {"prompt": prompt}}
+    if force_tool_error:
+        body["forceToolError"] = force_tool_error
+        body["input"]["forceToolError"] = force_tool_error
     resp = client.invoke_agent_runtime(
         agentRuntimeArn=arn,
         runtimeSessionId=session_id,
-        payload=json.dumps({"input": {"prompt": prompt}}),
+        payload=json.dumps(body),
         qualifier="DEFAULT",
         contentType="application/json",
         accept="application/json",
     )
     raw = resp["response"].read()
-    if isinstance(raw, bytes):
-        text = raw.decode("utf-8")
-    else:
-        text = str(raw)
+    text = raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
     return json.loads(text) if text.strip() else {}
+
+
+def _append_tool_stream_events(
+    parts: list[str],
+    tool_events: list[dict[str, Any]],
+    *,
+    session_id: str,
+    request_id: str,
+) -> None:
+    """Emit tool_use / tool_result; on error status emit error (AD-8)."""
+    for ev in tool_events:
+        etype = ev.get("type")
+        tool = ev.get("tool")
+        if etype == "tool_use":
+            parts.append(
+                _sse(
+                    {
+                        "type": "tool_use",
+                        "tool": tool,
+                        "input": ev.get("input"),
+                        "sessionId": session_id,
+                    }
+                )
+            )
+            _log(
+                "stream_tool_use",
+                sessionId=session_id,
+                requestId=request_id,
+                tool=tool,
+            )
+        elif etype == "tool_result":
+            status = ev.get("status") or "ok"
+            result_event = {
+                "type": "tool_result",
+                "tool": tool,
+                "status": status,
+                "ids": ev.get("ids")
+                or {"pmid": [], "nct": [], "chembl": []},
+                "sessionId": session_id,
+            }
+            if ev.get("summary"):
+                result_event["summary"] = ev.get("summary")
+            if status == "error" and ev.get("message"):
+                result_event["message"] = ev.get("message")
+            parts.append(_sse(result_event))
+            _log(
+                "stream_tool_result",
+                sessionId=session_id,
+                requestId=request_id,
+                tool=tool,
+                status=status,
+            )
+            if status == "error":
+                parts.append(
+                    _sse(
+                        {
+                            "type": "error",
+                            "message": ev.get("message")
+                            or f"Tool {tool} failed",
+                            "code": "tool_error",
+                            "tool": tool,
+                            "sessionId": session_id,
+                        }
+                    )
+                )
+                _log(
+                    "stream_tool_error_event",
+                    sessionId=session_id,
+                    requestId=request_id,
+                    tool=tool,
+                )
 
 
 def _build_sse_turn(
@@ -132,12 +243,8 @@ def _build_sse_turn(
     session_id: str,
     message: str,
     request_id: str,
+    force_tool_error: str = "",
 ) -> tuple[str, int]:
-    """
-    Build full SSE body for one turn.
-
-    Always ends with ``done`` after Runtime returns or a hard abort (AD-4).
-    """
     parts: list[str] = [
         _sse(
             {
@@ -162,30 +269,48 @@ def _build_sse_turn(
         return "".join(parts), 400
 
     try:
-        logger.info(
-            json.dumps(
-                {
-                    "msg": "runtime_invoke_start",
-                    "sessionId": session_id,
-                    "requestId": request_id,
-                }
-            )
+        _log(
+            "runtime_invoke_start",
+            sessionId=session_id,
+            requestId=request_id,
+            forceToolError=force_tool_error or None,
+            stallBudgetSeconds=_STALL_SECONDS,
         )
-        payload = _invoke_runtime(session_id, message)
-        text = _extract_runtime_text(payload)
-        for chunk in _chunk_tokens(text):
+        payload = _invoke_runtime(
+            session_id,
+            message,
+            force_tool_error=force_tool_error,
+        )
+        tool_events = _tool_events_from_payload(payload)
+        _append_tool_stream_events(
+            parts,
+            tool_events,
+            session_id=session_id,
+            request_id=request_id,
+        )
+
+        # AD-5: only if Runtime exposed reasoningContent — never invent from tokens.
+        for text in _reasoning_from_payload(payload):
+            parts.append(_sse({"type": "reasoning", "text": text}))
+
+        answer = _extract_runtime_text(payload)
+        for chunk in _chunk_tokens(answer):
             parts.append(_sse({"type": "token", "text": chunk}))
-        logger.info(
-            json.dumps(
-                {
-                    "msg": "runtime_invoke_ok",
-                    "sessionId": session_id,
-                    "requestId": request_id,
-                    "chars": len(text),
-                }
-            )
+
+        _log(
+            "runtime_invoke_ok",
+            sessionId=session_id,
+            requestId=request_id,
+            chars=len(answer),
+            toolCount=sum(1 for e in tool_events if e.get("type") == "tool_use"),
         )
     except (ClientError, BotoCoreError, json.JSONDecodeError, RuntimeError, ValueError) as exc:
+        _log(
+            "runtime_invoke_failed",
+            sessionId=session_id,
+            requestId=request_id,
+            error=exc.__class__.__name__,
+        )
         logger.exception(
             "runtime_invoke_failed sessionId=%s requestId=%s",
             session_id,
@@ -197,12 +322,13 @@ def _build_sse_turn(
                     "type": "error",
                     "message": f"Runtime turn failed: {exc.__class__.__name__}",
                     "code": "runtime_error",
+                    "sessionId": session_id,
                 }
             )
         )
     finally:
-        # AD-4: done only after Runtime turn closes (or hard abort path above).
         parts.append(_sse({"type": "done", "sessionId": session_id}))
+        _log("stream_done", sessionId=session_id, requestId=request_id)
 
     return "".join(parts), 200
 
@@ -240,10 +366,19 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
     session_id = _session_from_body(body) or _mint_session_id()
     message = _message_from_body(body)
+    force_tool_error = _force_tool_error_from_body(body)
+    _log(
+        "stream_request",
+        sessionId=session_id,
+        requestId=request_id,
+        tool=force_tool_error or None,
+    )
+
     sse_body, status = _build_sse_turn(
         session_id=session_id,
         message=message,
         request_id=request_id,
+        force_tool_error=force_tool_error,
     )
 
     return {
@@ -259,7 +394,6 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
 
 def _cors_headers() -> dict[str, str]:
-    # Browser CORS is finalized with Cognito UI; allow common smoke headers now.
     return {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "authorization,content-type,x-amz-date,x-amz-security-token",

@@ -1,14 +1,13 @@
 """
-AgentCore Runtime HTTP contract (Stories 3.1–3.2).
+AgentCore Runtime HTTP contract (Stories 3.1–4.3).
 
 Public service contract (AWS docs):
   POST /invocations  — agent turn
   GET  /ping         — health
   listen 0.0.0.0:8080
 
-Single Unified Research Agent entrypoint (AD-2) — no multi-agent swarm.
-Story 3.2: when AGENTCORE_MEMORY_ID is set, each turn uses Memory STM keyed by
-Runtime session id (X-Amzn-Bedrock-AgentCore-Runtime-Session-Id).
+Returns answer text plus real tool_events / optional reasoning extracted from
+Strands messages (never fabricated — AD-5). Supports forceToolError for Story 4.3.
 """
 
 from __future__ import annotations
@@ -29,11 +28,11 @@ from .config import (
     use_gateway_tools,
 )
 from .memory_session import build_memory_session_manager, memory_enabled
+from .tool_trace import extract_activity_from_messages, set_force_tool_error
 
 logger = logging.getLogger("unified_research_agent.runtime")
 logging.basicConfig(level=logging.INFO)
 
-# Runtime session header (AWS AgentCore HTTP contract).
 _SESSION_HEADER = "x-amzn-bedrock-agentcore-runtime-session-id"
 
 app = FastAPI(
@@ -42,12 +41,7 @@ app = FastAPI(
     description="Agentic Target ID — single Strands agent for AgentCore Runtime",
 )
 
-# Stateless fallback when Memory is not configured (local / Story 3.1 path).
-_agent_no_memory = create_agent()
-
-
 def _extract_text(result: Any) -> str:
-    """Best-effort string from a Strands AgentResult / message."""
     if result is None:
         return ""
     if isinstance(result, str):
@@ -70,13 +64,6 @@ def _extract_text(result: Any) -> str:
 
 
 def _prompt_from_body(body: Any) -> str:
-    """
-    Accept common AgentCore / docs shapes:
-      {"input": {"prompt": "..."}}
-      {"prompt": "..."}
-      {"input": "..."}
-      "..."
-    """
     if body is None:
         return ""
     if isinstance(body, str):
@@ -101,7 +88,6 @@ def _prompt_from_body(body: Any) -> str:
 
 
 def _session_id_from_request(request: Request, body: Any) -> str:
-    """Prefer Runtime session header; allow body.session_id for local smoke."""
     header = (request.headers.get(_SESSION_HEADER) or "").strip()
     if header:
         return header
@@ -119,30 +105,69 @@ def _session_id_from_request(request: Request, body: Any) -> str:
     return ""
 
 
-def _run_turn(prompt: str, session_id: str) -> tuple[str, bool]:
-    """
-    Execute one agent turn. Returns (text, used_memory).
+def _force_tool_error_from_body(body: Any) -> str:
+    if not isinstance(body, dict):
+        return ""
+    for key in ("forceToolError", "force_tool_error"):
+        val = body.get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip().lower()
+    inner = body.get("input")
+    if isinstance(inner, dict):
+        for key in ("forceToolError", "force_tool_error"):
+            val = inner.get(key)
+            if val is not None and str(val).strip():
+                return str(val).strip().lower()
+    return ""
 
-    Memory path builds a per-turn Agent + AgentCoreMemorySessionManager so STM
-    reloads prior turns for the same session key (AD-7).
-    """
-    if memory_enabled():
-        if not session_id:
-            raise ValueError(
-                "session_id required when AGENTCORE_MEMORY_ID is set "
-                "(Runtime Session-Id header or body.session_id)"
-            )
-        with build_memory_session_manager(session_id) as session_manager:
-            agent = create_agent(session_manager=session_manager)
-            result = agent(prompt)
-            return _extract_text(result), True
-    result = _agent_no_memory(prompt)
-    return _extract_text(result), False
+
+def _run_turn(
+    prompt: str,
+    session_id: str,
+    *,
+    force_tool_error: str = "",
+) -> dict[str, Any]:
+    set_force_tool_error(force_tool_error or None)
+    try:
+        if memory_enabled():
+            if not session_id:
+                raise ValueError(
+                    "session_id required when AGENTCORE_MEMORY_ID is set "
+                    "(Runtime Session-Id header or body.session_id)"
+                )
+            with build_memory_session_manager(session_id) as session_manager:
+                agent = create_agent(session_manager=session_manager)
+                start = len(getattr(agent, "messages", []) or [])
+                result = agent(prompt)
+                tool_events, reasoning = extract_activity_from_messages(
+                    list(getattr(agent, "messages", []) or []),
+                    start_index=start,
+                )
+                return {
+                    "text": _extract_text(result),
+                    "used_memory": True,
+                    "tool_events": tool_events,
+                    "reasoning": reasoning,
+                }
+
+        agent = create_agent()
+        result = agent(prompt)
+        tool_events, reasoning = extract_activity_from_messages(
+            list(getattr(agent, "messages", []) or []),
+            start_index=0,
+        )
+        return {
+            "text": _extract_text(result),
+            "used_memory": False,
+            "tool_events": tool_events,
+            "reasoning": reasoning,
+        }
+    finally:
+        set_force_tool_error(None)
 
 
 @app.get("/ping")
 def ping() -> dict[str, str]:
-    # AgentCore HTTP contract: Healthy | HealthyBusy (not lowercase "healthy").
     return {"status": "Healthy"}
 
 
@@ -161,9 +186,18 @@ async def invoke_agent(request: Request) -> dict[str, Any]:
         )
 
     session_id = _session_id_from_request(request, body)
+    force_tool_error = _force_tool_error_from_body(body)
 
     try:
-        text, used_memory = await asyncio.to_thread(_run_turn, prompt, session_id)
+        turn = await asyncio.to_thread(
+            _run_turn,
+            prompt,
+            session_id,
+            force_tool_error=force_tool_error,
+        )
+        text = turn["text"]
+        tool_events = turn["tool_events"]
+        reasoning = turn["reasoning"]
         return {
             "response": text,
             "status": "success",
@@ -172,15 +206,18 @@ async def invoke_agent(request: Request) -> dict[str, Any]:
                 "model_id": get_bedrock_model_id(),
                 "gateway_tools": use_gateway_tools()
                 and bool(get_agentcore_gateway_url()),
-                "memory": used_memory,
+                "memory": turn["used_memory"],
                 "memory_id_configured": bool(get_agentcore_memory_id()),
                 "session_id": session_id or None,
+                "tool_events": tool_events,
+                # Only non-empty when Strands emitted reasoningContent (AD-5).
+                "reasoning": reasoning,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         }
     except HTTPException:
         raise
-    except Exception as exc:  # noqa: BLE001 — Runtime boundary
+    except Exception as exc:  # noqa: BLE001
         logger.error(
             "Agent processing failed: %s: %s\n%s",
             exc.__class__.__name__,

@@ -77,7 +77,29 @@ python3 stream/scripts/smoke_stream_sigv4.py "What is our research focus?"
 - CDK: `infra/backend/stacks/stream-stack.ts`.
 - V1 returns a buffered `text/event-stream` body after Runtime completes (Python managed runtime has no native `streamifyResponse`). Event order still satisfies AD-4; mid-turn `tool_use` / token streaming can tighten in Story 4.3 if needed.
 
-## Out of scope (Story 4.3+)
+## Tool events + failures (Story 4.3)
 
-- Mapping `tool_use` / `tool_result` / tool `error` (Story 4.3)
-- Stall observability polish (Story 4.4)
+Runtime returns real `tool_events` from Strands message history. Stream maps them to SSE:
+
+1. `tool_use` (tool name + optional input summary)
+2. `tool_result` (`tool`, `status`, `ids`)
+3. if `status: error` → `error` Stream Event (AD-8), then continue / `done`
+
+`reasoning` is emitted **only** when Runtime exposes reasoningContent — never fabricated from answer tokens (AD-5).
+
+Forced failure (smoke):
+
+```bash
+# body field forceToolError=pubmed|clinicaltrials|chembl
+python3 stream/scripts/smoke_stream_tools_and_stall.py
+```
+
+## Observability + stall (Story 4.4)
+
+- Stream CloudWatch log group retention: **7 days**
+- Structured JSON logs include `sessionId`, `requestId`, and `tool` when applicable
+- Soft stall: clients/smoke use a **300s** request timeout; Lambda timeout is 5 minutes — no terminal event → client treats as terminal error/timeout
+
+## Epic 4 complete
+
+Auth (Identity Pool SigV4) + Stream SSE + tool mapping + observability. Next: Epic 5 React UI.

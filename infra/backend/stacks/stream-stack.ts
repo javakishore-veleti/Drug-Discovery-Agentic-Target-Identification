@@ -13,7 +13,7 @@ export interface StreamStackProps extends cdk.StackProps {
 }
 
 /**
- * Stories 4.1–4.2 — Stream Lambda SSE bridge + IAM Function URL.
+ * Stories 4.1–4.4 — Stream Lambda SSE bridge + IAM Function URL.
  *
  * - Python 3.12 handler under ``stream/``
  * - Emits AD-4 Stream Events; owns sessionId (AD-7)
