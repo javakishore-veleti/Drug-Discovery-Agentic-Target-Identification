@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Story **1.1** scope: runnable package with pinned `BEDROCK_MODEL_ID`. No Gateway, Stream Lambda, Cognito, or React UI.
+Stories **1.1–1.3**: pinned model, research-assist prompt, local PubMed tool (shared adapter under `gateways/database/pubmed/`). No AgentCore Gateway deploy, Stream Lambda, Cognito, or React UI yet.
 
 ## Prerequisites
 
@@ -48,6 +48,29 @@ PYTHONPATH=. python -m unified_research_agent \
 
 Expect a refusal of actionable clinical dosing plus research-only framing.
 
+## PubMed tool (Story 1.3)
+
+Shared adapter: `gateways/database/pubmed/adapter.py` (reuse later for Gateway Lambda).  
+Local Strands tool name: `pubmed`. OK results include `ids.pmid` (string array). Errors use `status: error` within a **45s** wall-clock budget (429 backoff included).
+
+Adapter-only smoke (no Bedrock):
+
+```bash
+# from repo root
+PYTHONPATH=gateways/database python -c "
+from pubmed.adapter import search_pubmed
+r = search_pubmed('trastuzumab mechanism of action', retmax=5)
+print(r['status'], r['ids']['pmid'][:5], r.get('message'))
+"
+```
+
+Agent + tool (needs Bedrock):
+
+```bash
+PYTHONPATH=. python -m unified_research_agent \
+  "Use the pubmed tool to find literature on the mechanism of action of Herceptin (trastuzumab). List PMIDs."
+```
+
 ## Run (trivial smoke)
 
 From this directory (with venv active):
@@ -76,10 +99,22 @@ agents/unified-research-agent/
     ├── __main__.py      # CLI entrypoint
     ├── config.py        # BEDROCK_MODEL_ID / region
     ├── prompts.py       # Research-assist system prompt (FR12 / AD-14)
-    └── agent.py         # Strands Agent factory
+    ├── paths.py         # Import path to gateways/database
+    ├── agent.py         # Strands Agent factory
+    └── tools/
+        └── pubmed_tool.py
+```
+
+Shared (repo):
+
+```text
+gateways/database/pubmed/
+├── __init__.py
+└── adapter.py           # NCBI E-utilities client + normalized ids shape
 ```
 
 ## Out of scope (later stories)
 
-- PubMed / Gateway tools (1.3+, Epic 2)
+- Herceptin synthesis citation polish (1.4)
+- AgentCore Gateway deploy for all three tools (Epic 2)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI
