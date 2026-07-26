@@ -64,21 +64,36 @@ The Stream Lambda emits typed SSE events the UI understands:
 - Tool failures surface as `error` / failed `tool_result`; the session stays usable.
 - Soft stall: UI/client terminals if no `done` within ~5 minutes.
 
-## V1 functionality (honest scope)
+## What’s shipped (V1 + beyond)
 
-**Default Gateway tools (exactly three):**
+**V1 core is complete** (Epics 1–6): Cognito chat UI · Stream Events (SSE / SigV4) · Unified Research Agent on AgentCore · Memory · CDK deploy/destroy · Herceptin MoA → cardiotoxicity multi-turn demo.
 
-1. **pubmed** — literature + `ids.pmid`
-2. **clinicaltrials** — trials + `ids.nct`
-3. **chembl** — chemistry + `ids.chembl`
+### Gateway tools
 
-**Optional tool #4:** `opentargets` (Open Targets / Ensembl) via `-c enableTool4=true`.
+| Tool | Citations | Deploy |
+| --- | --- | --- |
+| **pubmed** | `ids.pmid` | Default (V1) |
+| **clinicaltrials** | `ids.nct` | Default (V1) |
+| **chembl** | `ids.chembl` | Default (V1) |
+| **opentargets** | Ensembl / Open Targets evidence | **Beyond V1** — `-c enableTool4=true` (M3.3) |
 
-**Product surface:** Cognito email/password (admin-provisioned users) · research Disclaimer · streamed chat · Herceptin mechanism → cardiotoxicity multi-turn demo · CDK deploy/destroy.
+Default CDK deploy still wires the **three** V1 tools so FR-16 stays cheap/simple; turn on tool #4 when you want target-evidence depth.
 
-**Explicitly not V1:** multi-agent cloud swarm, vector RAG, Kafka, enterprise SSO (spike docs only), clinical-grade claims, USPTO/pathway DBs in the default Gateway.
+### Platform maturity (also beyond V1)
 
-Local specialist CLIs under `agents/` exist for domain prompt experiments; **production cloud path remains one Unified Research Agent**.
+Shipped slices from Epics **M1–M5** (see sprint board):
+
+- **Evals** — golden-prompt harness ([`docs/evals.md`](docs/evals.md))
+- **Ops** — CloudWatch dashboard, alarms, X-Ray, EMF ([`docs/ops.md`](docs/ops.md))
+- **Security** — threat model, optional CloudFront WAF (`-c enableWaf=true`), SSO spike notes ([`docs/security.md`](docs/security.md))
+- **Staging / release** — staging notes, SLO drafts, EventBridge-before-Kafka ([`docs/staging-and-release.md`](docs/staging-and-release.md))
+- **Epic L** — local specialist agent CLIs for domain experiments; **cloud production path stays one Unified Research Agent**
+
+### Still out of scope (by design)
+
+Multi-agent cloud swarm · vector RAG (blocked) · Kafka (cancelled) · enterprise SSO (docs spike only) · clinical-grade claims · USPTO / full pathway DB suite in the Gateway.
+
+Roadmap detail: [`roadmap-platform-maturity.md`](_bmad-output/planning-artifacts/roadmap-platform-maturity.md) · [`epics-platform-maturity.md`](_bmad-output/planning-artifacts/epics-platform-maturity.md).
 
 ## BMAD Method (how this repo is specified)
 
@@ -91,20 +106,11 @@ This project is a **BMAD** mastery / reference build (spec-driven), not Kiro.
 
 **Kiro → BMAD map:** `requirements.md` ≈ brief+PRD · `design.md` ≈ architecture spine · `tasks.md` ≈ epics → stories.
 
-**Maturity (evals, ops, security, staging):** mostly shipped as docs/CDK slices — see [`roadmap-platform-maturity.md`](_bmad-output/planning-artifacts/roadmap-platform-maturity.md), [`epics-platform-maturity.md`](_bmad-output/planning-artifacts/epics-platform-maturity.md), and:
-
-- [`docs/evals.md`](docs/evals.md) — golden-prompt harness (M1.1 / M1.2)
-- [`docs/ops.md`](docs/ops.md) — CloudWatch dashboard, alarms, X-Ray, EMF metrics
-- [`docs/security.md`](docs/security.md) — threat model, WAF flag, SSO spike notes
-- [`docs/staging-and-release.md`](docs/staging-and-release.md) — staging / SLO drafts / EventBridge-before-Kafka
-
-**Vector DB / Kafka:** intentionally **blocked** / **cancelled** until product needs change.
-
 ## Example research turns
 
 - What is the mechanism of action of Herceptin?
 - Which patient populations are most vulnerable to its cardiotoxicity? *(follow-up, same session)*
-- Use Open Targets to find ERBB2 / HER2 target evidence and cite Ensembl ids *(needs `enableTool4=true`)*
+- Use Open Targets to find ERBB2 / HER2 target evidence and cite Ensembl ids *(deploy with `enableTool4=true`)*
 - What ChEMBL context exists for trastuzumab / HER2-targeted agents?
 
 ## Deploy (pilot)
