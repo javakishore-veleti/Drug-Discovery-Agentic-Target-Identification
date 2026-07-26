@@ -217,7 +217,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# BMAD
-_bmad-output/
+# BMAD — commit planning artifacts (brief/PRD/architecture); ignore personal config + implementation scratch
+_bmad-output/implementation-artifacts/
 _bmad/config.user.toml
 _bmad/custom/config.user.toml
+# Keep tracked: _bmad-output/planning-artifacts/
