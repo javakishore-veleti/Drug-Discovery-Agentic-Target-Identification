@@ -1,5 +1,5 @@
 """
-AgentCore Gateway MCP client (Stories 2.1–2.2).
+AgentCore Gateway MCP client (Stories 2.1–2.3).
 
 Uses SigV4 via mcp-proxy-for-aws against an IAM-authorized Gateway.
 Normalizes wire names like `pubmed___pubmed` → logical `pubmed` (AD-3).
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 LOGICAL_PUBMED = "pubmed"
 LOGICAL_CLINICALTRIALS = "clinicaltrials"
+LOGICAL_CHEMBL = "chembl"
 _DELIMITER = "___"
 
 
@@ -122,6 +123,21 @@ def call_gateway_clinicaltrials(
         logical_name=LOGICAL_CLINICALTRIALS,
         arguments={"query": query, "retmax": retmax},
         tool_use_id="gateway-clinicaltrials-1",
+    )
+
+
+def call_gateway_chembl(
+    client: MCPClient,
+    *,
+    query: str,
+    retmax: int = 8,
+) -> dict[str, Any]:
+    """Call Gateway MCP tool chembl and return a parsed adapter-shaped dict."""
+    return call_gateway_tool(
+        client,
+        logical_name=LOGICAL_CHEMBL,
+        arguments={"query": query, "retmax": retmax},
+        tool_use_id="gateway-chembl-1",
     )
 
 

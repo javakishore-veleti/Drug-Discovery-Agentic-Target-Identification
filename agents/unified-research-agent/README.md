@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Stories **1.1–1.4** (Epic 1) plus **2.1–2.2** (Gateway PubMed + ClinicalTrials): pinned model, research-assist prompt, evidence tools via local adapters or AgentCore Gateway MCP. No Runtime / Stream / Cognito UI yet.
+Stories **1.1–1.4** (Epic 1) plus **2.1–2.3** (Gateway PubMed + ClinicalTrials + ChEMBL): pinned model, research-assist prompt, evidence tools via local adapters or AgentCore Gateway MCP. No Runtime / Stream / Cognito UI yet.
 
 ## Prerequisites
 
@@ -162,7 +162,19 @@ print(r['status'], r['ids']['nct'][:5], r.get('message'))
 "
 ```
 
+## Gateway ChEMBL (Story 2.3)
+
+Logical MCP tool: `chembl`. OK results include `ids.chembl` (`CHEMBL` + digits).
+
+```bash
+PYTHONPATH=gateways/database python -c "
+from chembl.adapter import search_chembl
+r = search_chembl('trastuzumab', retmax=5)
+print(r['status'], r['ids']['chembl'][:5], r.get('message'))
+"
+```
+
 ## Out of scope (later stories)
 
-- Gateway tool `chembl` (Story 2.3)
+- Exactly-three-tools enforcement (Story 2.4)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI (Epics 3–5)

@@ -7,10 +7,10 @@ import * as logs from "aws-cdk-lib/aws-logs";
 import { Construct } from "constructs";
 
 /**
- * AgentCore Gateway — PubMed (2.1) + ClinicalTrials.gov (2.2).
+ * AgentCore Gateway — PubMed (2.1) + ClinicalTrials.gov (2.2) + ChEMBL (2.3).
  *
  * - Inbound auth: AWS IAM (Runtime / local SigV4 clients)
- * - Tool schema names: exactly `pubmed`, `clinicaltrials` (AD-3)
+ * - Tool schema names: exactly `pubmed`, `clinicaltrials`, `chembl` (AD-3)
  * - Wire names may be `${target}___${tool}`; agent normalizes to logical names.
  */
 export class GatewayStack extends cdk.Stack {
@@ -21,13 +21,13 @@ export class GatewayStack extends cdk.Stack {
 
     const gateway = new agentcore.Gateway(this, "ResearchGateway", {
       gatewayName: "agentic-target-id-gw",
-      description: "Agentic Target ID evidence gateway (V1 pubmed + clinicaltrials)",
+      description: "Agentic Target ID evidence gateway (V1 pubmed + clinicaltrials + chembl)",
       authorizerConfiguration: agentcore.GatewayAuthorizer.usingAwsIam(),
       exceptionLevel: agentcore.GatewayExceptionLevel.DEBUG,
       protocolConfiguration: agentcore.GatewayProtocol.mcp({
         supportedVersions: [agentcore.MCPProtocolVersion.MCP_2025_03_26],
         instructions:
-          "Evidence tools for drug-discovery target identification. Logical tool names: pubmed, clinicaltrials (chembl next).",
+          "Evidence tools for drug-discovery target identification. Logical tool names: pubmed, clinicaltrials, chembl.",
       }),
     });
 
@@ -107,6 +107,43 @@ export class GatewayStack extends cdk.Stack {
       ]),
     });
 
+    const chemblFn = this.addToolLambda({
+      id: "Chembl",
+      functionName: "agentic-target-id-chembl",
+      codePath: path.join(gatewaysDb, "chembl"),
+      description: "AgentCore Gateway MCP tool chembl (EBI ChEMBL API)",
+      env: { CHEMBL_SSL_VERIFY: "true" },
+    });
+
+    gateway.addLambdaTarget("ChemblTarget", {
+      gatewayTargetName: "chembl",
+      description: "ChEMBL molecule / bioactivity search",
+      lambdaFunction: chemblFn,
+      toolSchema: agentcore.ToolSchema.fromInline([
+        {
+          name: "chembl",
+          description:
+            "Search ChEMBL for molecules and drug identities. " +
+            "Use for chemistry / bioactivity context (e.g. trastuzumab, HER2 ADCs). " +
+            "Returns status, ids.chembl (CHEMBL##### string array), and a short summary.",
+          inputSchema: {
+            type: agentcore.SchemaDefinitionType.OBJECT,
+            properties: {
+              query: {
+                type: agentcore.SchemaDefinitionType.STRING,
+                description: "ChEMBL search terms (e.g. trastuzumab).",
+              },
+              retmax: {
+                type: agentcore.SchemaDefinitionType.INTEGER,
+                description: "Max ChEMBL IDs to return (1–20). Default 8.",
+              },
+            },
+            required: ["query"],
+          },
+        },
+      ]),
+    });
+
     const invokerArn =
       (this.node.tryGetContext("gatewayInvokerArn") as string | undefined) ||
       process.env.GATEWAY_INVOKER_ARN;
@@ -139,13 +176,21 @@ export class GatewayStack extends cdk.Stack {
       value: clinicaltrialsFn.functionName,
       description: "ClinicalTrials.gov tool Lambda name",
     });
+    new cdk.CfnOutput(this, "ChemblLambdaName", {
+      value: chemblFn.functionName,
+      description: "ChEMBL tool Lambda name",
+    });
     new cdk.CfnOutput(this, "PubmedMcpToolName", {
       value: "pubmed",
       description: "Logical MCP tool name (AD-3).",
     });
     new cdk.CfnOutput(this, "ClinicaltrialsMcpToolName", {
       value: "clinicaltrials",
-      description: "Logical MCP tool name (AD-3). Wire may be clinicaltrials___clinicaltrials.",
+      description: "Logical MCP tool name (AD-3).",
+    });
+    new cdk.CfnOutput(this, "ChemblMcpToolName", {
+      value: "chembl",
+      description: "Logical MCP tool name (AD-3). Wire may be chembl___chembl.",
     });
   }
 
