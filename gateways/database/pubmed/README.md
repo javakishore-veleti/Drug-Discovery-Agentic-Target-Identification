@@ -1,9 +1,10 @@
-# PubMed adapter
+# PubMed adapter + Gateway Lambda
 
 Shared NCBI E-utilities client for Agentic Target ID.
 
 - Used by local Strands tool (`agents/unified-research-agent`)
-- Reused by AgentCore Gateway Lambda in Epic 2 (same `search_pubmed` + `ids` shape)
+- Reused by AgentCore Gateway Lambda (`handler.py`) — Story 2.1
+- Same `search_pubmed` + `ids` shape (no duplicated search logic)
 
 ## Result contract
 

@@ -27,3 +27,23 @@ def get_aws_region() -> str:
         or os.environ.get("AWS_DEFAULT_REGION")
         or DEFAULT_AWS_REGION
     ).strip()
+
+
+def get_agentcore_gateway_url() -> str:
+    """Return AgentCore Gateway MCP URL (empty if unset)."""
+    return os.environ.get("AGENTCORE_GATEWAY_URL", "").strip()
+
+
+def use_gateway_tools() -> bool:
+    """
+    Prefer Gateway MCP path for tools when truthy.
+
+    Default: enabled when AGENTCORE_GATEWAY_URL is set.
+    Override with USE_GATEWAY_TOOLS=true|false.
+    """
+    raw = os.environ.get("USE_GATEWAY_TOOLS", "").strip().lower()
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    return bool(get_agentcore_gateway_url())

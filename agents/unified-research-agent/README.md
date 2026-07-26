@@ -2,7 +2,7 @@
 
 Local Strands + Amazon Bedrock entrypoint for **Agentic Target ID** V1.
 
-Stories **1.1–1.4** (Epic 1 complete): pinned model, research-assist prompt, local PubMed tool, Herceptin synthesis with PMID surfacing. No AgentCore Gateway deploy, Stream Lambda, Cognito, or React UI yet.
+Stories **1.1–1.4** (Epic 1) plus **2.1** (Gateway PubMed): pinned model, research-assist prompt, PubMed via local adapter or AgentCore Gateway MCP. No Runtime / Stream / Cognito UI yet.
 
 ## Prerequisites
 
@@ -26,6 +26,8 @@ cp .env.example .env        # edit if needed
 | --- | --- | --- |
 | `BEDROCK_MODEL_ID` | `us.anthropic.claude-sonnet-4-6` | Active US pin (AD-6 intent; Sonnet 4.0 id is Legacy/EOL) |
 | `AWS_REGION` | `us-east-1` | Or `AWS_DEFAULT_REGION` |
+| `AGENTCORE_GATEWAY_URL` | _(unset)_ | Gateway MCP URL from `infra/backend` deploy |
+| `USE_GATEWAY_TOOLS` | auto | Default on when Gateway URL is set; `false` forces local adapter |
 
 If Sonnet 4.6 is not enabled, set the fallback in `.env`:
 
@@ -124,8 +126,28 @@ gateways/database/pubmed/
 └── adapter.py           # NCBI E-utilities client + normalized ids shape
 ```
 
+## Gateway PubMed (Story 2.1)
+
+Deploy Gateway + PubMed Lambda (see `infra/backend/README.md`), then:
+
+```bash
+# in agents/unified-research-agent/.env
+AGENTCORE_GATEWAY_URL=https://..../mcp
+USE_GATEWAY_TOOLS=true
+```
+
+```bash
+pip install -r requirements.txt
+PYTHONPATH=. python -m unified_research_agent --list-gateway-tools
+# expect: logical_tools=pubmed
+
+PYTHONPATH=. python -m unified_research_agent \
+  "Use the pubmed tool to find literature on trastuzumab mechanism. List PMIDs."
+```
+
+Agent tool name stays exactly `pubmed`. When Gateway is enabled, invocations go through AgentCore Gateway MCP (SigV4) into the shared Lambda adapter — not the local-only path.
+
 ## Out of scope (later stories)
 
-- AgentCore Gateway deploy for all three tools (Epic 2)
+- Gateway tools `clinicaltrials` / `chembl` (Stories 2.2–2.3)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI (Epics 3–5)
-- AgentCore Runtime, Stream Lambda, Cognito, React UI

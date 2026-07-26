@@ -1,4 +1,4 @@
-"""Strands tool wrapping the shared PubMed adapter (Story 1.3)."""
+"""Strands tool `pubmed` — local adapter or AgentCore Gateway (Story 2.1)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from typing import Any
 
 from strands import tool
 
+from ..gateway_mcp import call_gateway_pubmed, create_gateway_mcp_client, gateway_enabled
 from ..paths import ensure_gateway_database_on_path
 
 ensure_gateway_database_on_path()
@@ -28,4 +29,7 @@ def pubmed_search(query: str, retmax: int = 8) -> dict[str, Any]:
         query: PubMed/Entrez search terms (e.g. trastuzumab mechanism of action).
         retmax: Max PMIDs to return (1–20).
     """
+    if gateway_enabled():
+        with create_gateway_mcp_client() as client:
+            return call_gateway_pubmed(client, query=query, retmax=retmax)
     return search_pubmed(query, retmax=retmax)

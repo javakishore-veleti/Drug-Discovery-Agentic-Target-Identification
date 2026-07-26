@@ -2,3 +2,4 @@ strands-agents>=1.47,<2
 boto3>=1.35,<2
 python-dotenv>=1.0,<2
 certifi>=2024.0,<2027
+mcp-proxy-for-aws>=1.0.0,<2
