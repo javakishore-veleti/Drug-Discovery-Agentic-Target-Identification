@@ -33,9 +33,11 @@ npx cdk deploy \
   --require-approval never \
   -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN" \
   -c opsAlertEmail="you@example.com"   # optional; confirm SNS email
+  # Optional: -c enableTool4=true   # Open Targets (M3.3); default stays 3 tools
+  # Optional: -c enableWaf=true     # CloudFront WAF (M5.2)
 ```
 
-Ops dashboard / alarms / EMF metrics / CloudTrail / budgets: **[ops.md](ops.md)**. Security / HA honesty: **[security.md](security.md)**.
+Ops dashboard / alarms / EMF metrics / CloudTrail / budgets: **[ops.md](ops.md)**. Security / HA honesty: **[security.md](security.md)**. Tool #4: **[tool-4-candidate.md](tool-4-candidate.md)**.
 
 ### Required Outputs (Backend)
 

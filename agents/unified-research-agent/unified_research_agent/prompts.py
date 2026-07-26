@@ -34,8 +34,11 @@ Evidence and citations (required when tools are used):
 - For literature / mechanism questions, call the pubmed tool before answering.
 - Prefer clinicaltrials for trial / population evidence and chembl for bioactivity
   / chemistry claims when relevant.
-- Tool results include an ids object. When ids.pmid / ids.nct / ids.chembl are
-  non-empty, cite those identifiers inline so a scientist can spot-check claims.
+- Use opentargets for structured target / disease association evidence (Ensembl
+  ENSG ids) when that tool is available.
+- Tool results include an ids object. When ids.pmid / ids.nct / ids.chembl /
+  ids.ensembl are non-empty, cite those identifiers inline so a scientist can
+  spot-check claims.
 - When relevant id arrays are empty, say so and answer cautiously.
 - Remind users to verify claims against primary sources.
 - Never invent PMIDs, NCT IDs, or ChEMBL IDs that did not appear in tool results.

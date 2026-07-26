@@ -8,6 +8,8 @@ import { Construct } from "constructs";
 
 /** Story 2.4 / AD-3 / FR-16 — default Gateway exposes exactly these logical MCP names. */
 const V1_LOGICAL_TOOLS = ["pubmed", "clinicaltrials", "chembl"] as const;
+/** Story M3.3 — optional fourth tool when ``-c enableTool4=true``. */
+const TOOL4_NAME = "opentargets";
 
 /**
  * AgentCore Gateway — V1 evidence tools (Stories 2.1–2.4).
@@ -172,6 +174,51 @@ export class GatewayStack extends cdk.Stack {
       chemblFn.functionName,
     );
 
+    // Story M3.3 — optional Open Targets tool (default OFF to keep FR-16 = 3 tools).
+    const enableTool4 =
+      this.node.tryGetContext("enableTool4") === true ||
+      this.node.tryGetContext("enableTool4") === "true";
+    let opentargetsFnName = "(disabled)";
+    if (enableTool4) {
+      const opentargetsFn = this.addToolLambda({
+        id: "Opentargets",
+        functionName: "agentic-target-id-opentargets",
+        codePath: path.join(gatewaysDb, "opentargets"),
+        description: "AgentCore Gateway MCP tool opentargets (Open Targets Platform)",
+        env: { OPENTARGETS_SSL_VERIFY: "true" },
+      });
+      gateway.addLambdaTarget("OpentargetsTarget", {
+        gatewayTargetName: TOOL4_NAME,
+        description: "Open Targets Platform target search (Ensembl ids)",
+        lambdaFunction: opentargetsFn,
+        toolSchema: agentcore.ToolSchema.fromInline([
+          {
+            name: TOOL4_NAME,
+            description:
+              "Search Open Targets Platform for target evidence. " +
+              "Use for ERBB2/HER2-style target questions. " +
+              "Returns status, ids.ensembl (ENSG…), and a short summary.",
+            inputSchema: {
+              type: agentcore.SchemaDefinitionType.OBJECT,
+              properties: {
+                query: {
+                  type: agentcore.SchemaDefinitionType.STRING,
+                  description: "Target / disease search terms (e.g. ERBB2, HER2).",
+                },
+                retmax: {
+                  type: agentcore.SchemaDefinitionType.INTEGER,
+                  description: "Max hits to return (1–20). Default 8.",
+                },
+              },
+              required: ["query"],
+            },
+          },
+        ]),
+      });
+      this.toolFunctionNames.push(opentargetsFn.functionName);
+      opentargetsFnName = opentargetsFn.functionName;
+    }
+
     const invokerArn =
       (this.node.tryGetContext("gatewayInvokerArn") as string | undefined) ||
       process.env.GATEWAY_INVOKER_ARN;
@@ -221,8 +268,19 @@ export class GatewayStack extends cdk.Stack {
       description: "Logical MCP tool name (AD-3). Wire may be chembl___chembl.",
     });
     new cdk.CfnOutput(this, "V1LogicalTools", {
-      value: V1_LOGICAL_TOOLS.join(","),
-      description: "Story 2.4 — exact default Gateway logical tool set (AD-3 / FR-16)",
+      value: enableTool4
+        ? [...V1_LOGICAL_TOOLS, TOOL4_NAME].join(",")
+        : V1_LOGICAL_TOOLS.join(","),
+      description:
+        "Gateway logical tools (FR-16 default = 3; +opentargets when enableTool4=true)",
+    });
+    new cdk.CfnOutput(this, "EnableTool4", {
+      value: enableTool4 ? "true" : "false",
+      description: "Story M3.3 — Open Targets tool enabled via -c enableTool4=true",
+    });
+    new cdk.CfnOutput(this, "OpentargetsLambdaName", {
+      value: opentargetsFnName,
+      description: "Open Targets tool Lambda name (or disabled)",
     });
   }
 

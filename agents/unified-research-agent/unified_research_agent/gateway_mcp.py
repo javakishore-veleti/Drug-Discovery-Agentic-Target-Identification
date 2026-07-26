@@ -22,12 +22,15 @@ logger = logging.getLogger(__name__)
 LOGICAL_PUBMED = "pubmed"
 LOGICAL_CLINICALTRIALS = "clinicaltrials"
 LOGICAL_CHEMBL = "chembl"
+LOGICAL_OPENTARGETS = "opentargets"
 _DELIMITER = "___"
 
 # Keep in sync with gateways/database/tool_contract.py + CDK V1_LOGICAL_TOOLS
 V1_LOGICAL_TOOLS: frozenset[str] = frozenset(
     {LOGICAL_PUBMED, LOGICAL_CLINICALTRIALS, LOGICAL_CHEMBL}
 )
+# Default V1 (FR-16) plus optional tool #4 when Gateway deployed with enableTool4
+V1_PLUS_TOOL4: frozenset[str] = V1_LOGICAL_TOOLS | {LOGICAL_OPENTARGETS}
 
 
 def _ensure_tool_contract_on_path() -> None:
@@ -39,11 +42,14 @@ def _ensure_tool_contract_on_path() -> None:
 
 
 def assert_exact_v1_gateway_tools(logical_names: list[str] | set[str]) -> None:
-    """Story 2.4 — default Gateway must expose exactly the three V1 tools."""
+    """
+    Story 2.4 / M3.3 — Gateway exposes exactly V1 three tools, or V1+opentargets
+    when tool #4 is enabled on the Gateway deploy.
+    """
     _ensure_tool_contract_on_path()
-    from tool_contract import assert_exact_v1_tools  # noqa: E402
+    from tool_contract import assert_gateway_tools  # noqa: E402
 
-    assert_exact_v1_tools(logical_names)
+    assert_gateway_tools(logical_names)
 
 
 def logical_tool_name(wire_name: str) -> str:
@@ -183,6 +189,21 @@ def call_gateway_chembl(
         logical_name=LOGICAL_CHEMBL,
         arguments={"query": query, "retmax": retmax},
         tool_use_id="gateway-chembl-1",
+    )
+
+
+def call_gateway_opentargets(
+    client: MCPClient,
+    *,
+    query: str,
+    retmax: int = 8,
+) -> dict[str, Any]:
+    """Call Gateway MCP tool opentargets (Story M3.3) when deployed."""
+    return call_gateway_tool(
+        client,
+        logical_name=LOGICAL_OPENTARGETS,
+        arguments={"query": query, "retmax": retmax},
+        tool_use_id="gateway-opentargets-1",
     )
 
 

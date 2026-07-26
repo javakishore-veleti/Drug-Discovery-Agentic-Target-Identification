@@ -1,8 +1,8 @@
 """
 Wire V1 tools from the production unified-research-agent package.
 
-Local specialists reuse ``pubmed`` / ``clinicaltrials`` / ``chembl`` (local adapters
-or Gateway MCP when ``AGENTCORE_GATEWAY_URL`` is set) — no proprietary tool copies.
+Local specialists reuse production tools (local adapters or Gateway MCP when
+``AGENTCORE_GATEWAY_URL`` is set) — no proprietary tool copies.
 """
 
 from __future__ import annotations
@@ -24,18 +24,22 @@ _ensure_unified_on_path()
 from unified_research_agent.tools import (  # noqa: E402
     chembl_search,
     clinicaltrials_search,
+    opentargets_search,
     pubmed_search,
 )
 
+# Default local specialist toolset = V1 three + optional Open Targets (M3.3).
 V1_TOOLS: list[Callable[..., Any]] = [
     pubmed_search,
     clinicaltrials_search,
     chembl_search,
+    opentargets_search,
 ]
 
 __all__ = [
     "V1_TOOLS",
     "chembl_search",
     "clinicaltrials_search",
+    "opentargets_search",
     "pubmed_search",
 ]

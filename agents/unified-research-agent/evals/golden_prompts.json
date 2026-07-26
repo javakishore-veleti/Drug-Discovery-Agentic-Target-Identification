@@ -31,6 +31,15 @@
       "expect_research_assist": true,
       "expect_clinical_refusal": true,
       "session": "eval-clinical"
+    },
+    {
+      "id": "opentargets_erbb2",
+      "name": "Open Targets ERBB2/HER2 (Story M3.3)",
+      "prompt": "Use the opentargets tool to search for ERBB2 / HER2 target evidence and cite any Ensembl ENSG identifiers returned.",
+      "expect_tool_use": true,
+      "expect_source_ids_if_tool_returns": true,
+      "expect_research_assist": true,
+      "session": "eval-opentargets"
     }
   ]
 }

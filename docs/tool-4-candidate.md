@@ -1,6 +1,7 @@
-# Gateway tool #4 candidate (Story M3.3 — design)
+# Gateway tool #4 — Open Targets (Story M3.3)
 
-**Status:** design only · **Not implemented** · V1 default remains **exactly 3** tools (FR-16).
+**Status:** implemented · Default deploy remains **exactly 3** tools (FR-16).  
+Enable with CDK: `-c enableTool4=true`.
 
 ## Recommendation
 

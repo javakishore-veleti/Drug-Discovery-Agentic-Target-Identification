@@ -1,5 +1,5 @@
 # Drug-Discovery-Agentic-Target-Identification
-Agentic drug-discovery platform for target identification. Researchers chat with a Bedrock AgentCore agent that uses biomedical MCP tools (PubMed, ChEMBL, ClinicalTrials, and more) to analyze mechanisms, safety, pathways, and design hypotheses for pharmaceutical R&amp;D.
+Agentic drug-discovery **research-assist** pilot for early target identification. Researchers chat with a Bedrock AgentCore agent that calls governed biomedical MCP tools to synthesize public evidence (literature, trials, chemistry, optional Open Targets).
 
 ## What is target identification?
 
@@ -40,7 +40,7 @@ Researcher
        → Foundation model (Claude on Amazon Bedrock)
        → AgentCore Memory (session context)
        → AgentCore Gateway (MCP tools)
-            → Biomedical APIs (PubMed, ChEMBL, ClinicalTrials, …)
+            → Biomedical APIs (PubMed, ClinicalTrials.gov, ChEMBL; optional Open Targets)
 ```
 
 ### Core components
@@ -67,26 +67,24 @@ Researcher
 - Drug design hypothesis generation
 - Patent and literature intelligence (where configured)
 
-## Key features
+## Key features (honest V1)
 
-- Intelligent drug profiling and toxicity analysis
-- Patient risk stratification and biomarker exploration
-- Molecular pathway and protein-interaction intelligence
-- Target safety assessment
-- AI-assisted design hypothesis generation
-- Streaming chat UI with tool-use visibility
-- Persistent research sessions
-- Biomedical tool access via gateway, including:
-  - **Literature & clinical:** PubMed, ClinicalTrials.gov, OpenFDA
-  - **Drug discovery:** ChEMBL, PubChem, and related sources
-  - **Proteins & genomics:** UniProt, STRING, Ensembl, GTEx, GEO
-  - **Pathways:** Reactome, KEGG
-  - **Structural biology:** PDB, AlphaFold
-  - **Patents:** USPTO (optional API key)
+- Streaming research chat with **tool-use visibility** and Cognito auth
+- Single **Unified Research Agent** (not a multi-agent cloud swarm)
+- In-session multi-turn memory (no cross-day session list UI)
+- Gateway tools (default deploy):
+  - **PubMed** — literature / PMIDs
+  - **ClinicalTrials.gov** — trials / NCT IDs
+  - **ChEMBL** — chemistry / ChEMBL IDs
+- **Optional tool #4:** Open Targets (`-c enableTool4=true`) — Ensembl target ids
+- Research-assist Disclaimer + agent refusal of actionable clinical orders
+- CDK deploy / destroy lifecycle; CloudWatch ops dashboard when Ops stack is deployed
+
+**Not in the default V1 Gateway** (roadmap / deferred): OpenFDA, UniProt, STRING, Reactome, KEGG, PDB, AlphaFold, USPTO, vector RAG, Kafka, etc. See `docs/tool-4-candidate.md` and `roadmap-platform-maturity.md`.
 
 ## Scope (V1 pilot)
 
-Research assistance over **public** APIs (PubMed, ClinicalTrials.gov, ChEMBL) via a single AgentCore agent. **Not** clinical-grade decision support, **not** a proprietary knowledge graph, and **not** a validated-target ranking product. UI Disclaimer + agent prompt enforce research-only boundaries.
+Research assistance over **public** APIs via a single AgentCore agent. Default = **exactly three** Gateway tools (FR-16). Optional Open Targets is off unless you pass `enableTool4=true`. **Not** clinical-grade decision support, **not** a proprietary knowledge graph, and **not** a validated-target ranking product.
 
 **Operating model:** deploy for demos; **destroy-when-not-demoing** to control idle cost (see [docs/deploy.md](docs/deploy.md)).
 

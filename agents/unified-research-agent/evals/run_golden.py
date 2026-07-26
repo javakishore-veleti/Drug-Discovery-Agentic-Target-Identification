@@ -173,6 +173,32 @@ def _run_dry() -> list[dict[str, Any]]:
             ),
             "tool_events": [],
         },
+        {
+            "id": "opentargets_erbb2",
+            "case": {
+                "expect_tool_use": True,
+                "expect_source_ids_if_tool_returns": True,
+                "expect_research_assist": True,
+            },
+            "answer": (
+                "Research assistance only. Open Targets lists ERBB2 as ENSG00000141736. "
+                "Verify against primary sources."
+            ),
+            "tool_events": [
+                {"type": "tool_use", "tool": "opentargets"},
+                {
+                    "type": "tool_result",
+                    "tool": "opentargets",
+                    "status": "ok",
+                    "ids": {
+                        "pmid": [],
+                        "nct": [],
+                        "chembl": [],
+                        "ensembl": ["ENSG00000141736"],
+                    },
+                },
+            ],
+        },
     ]
     results = []
     for fx in fixtures:

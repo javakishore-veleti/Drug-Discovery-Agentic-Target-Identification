@@ -8,6 +8,7 @@ from typing import Any
 _PMID = re.compile(r"\bPMID[:\s]*(\d{5,9})\b", re.I)
 _NCT = re.compile(r"\b(NCT\d{8})\b", re.I)
 _CHEMBL = re.compile(r"\b(CHEMBL\d+)\b", re.I)
+_ENSEMBL = re.compile(r"\b(ENSG\d+)\b", re.I)
 
 _RESEARCH_ASSIST = re.compile(
     r"research assistance|not medical advice|not for clinical|clinical decision|"
@@ -32,18 +33,24 @@ def extract_source_ids_from_text(text: str) -> dict[str, list[str]]:
         "pmid": sorted(set(_PMID.findall(text))),
         "nct": sorted(set(_NCT.findall(text))),
         "chembl": sorted(set(m.upper() for m in _CHEMBL.findall(text))),
+        "ensembl": sorted(set(m.upper() for m in _ENSEMBL.findall(text))),
     }
 
 
 def ids_from_tool_events(tool_events: list[dict[str, Any]]) -> dict[str, list[str]]:
-    ids: dict[str, list[str]] = {"pmid": [], "nct": [], "chembl": []}
+    ids: dict[str, list[str]] = {
+        "pmid": [],
+        "nct": [],
+        "chembl": [],
+        "ensembl": [],
+    }
     for ev in tool_events:
         if ev.get("type") != "tool_result":
             continue
         raw = ev.get("ids") or {}
         if not isinstance(raw, dict):
             continue
-        for key in ("pmid", "nct", "chembl"):
+        for key in ("pmid", "nct", "chembl", "ensembl"):
             val = raw.get(key)
             if isinstance(val, list):
                 ids[key].extend(str(x) for x in val)
@@ -123,7 +130,7 @@ def score_case(
         )
 
     if case.get("expect_source_ids_if_tool_returns"):
-        tool_has = any(tool_ids[k] for k in ("pmid", "nct", "chembl"))
+        tool_has = any(tool_ids[k] for k in ("pmid", "nct", "chembl", "ensembl"))
         if not tool_has:
             checks.append(
                 {
@@ -135,7 +142,7 @@ def score_case(
         else:
             # At least one id from tool results must appear in the answer text.
             surfaced = False
-            for key in ("pmid", "nct", "chembl"):
+            for key in ("pmid", "nct", "chembl", "ensembl"):
                 for ident in tool_ids[key]:
                     if ident.lower() in answer.lower() or ident in answer:
                         surfaced = True

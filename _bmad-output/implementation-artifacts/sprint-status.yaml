@@ -168,7 +168,7 @@ epics:
         file: stories/M2.5-bedrock-lambda-spend-alarms.md
   - id: M3
     title: "Optional retrieval and tool growth (V2 product, gated)"
-    status: backlog
+    status: done
     stories:
       - id: M3.1
         status: done
@@ -177,7 +177,7 @@ epics:
         status: blocked
         file: stories/M3.2-vector-store-spike-gated.md
       - id: M3.3
-        status: backlog
+        status: done
         file: stories/M3.3-gateway-tool-4-candidate-spike.md
   - id: M4
     title: "Release engineering, SRE, events (V3 ops)"

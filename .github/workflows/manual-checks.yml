@@ -1,0 +1,74 @@
+# Manual-only CI (workflow_dispatch). Does NOT run on push/PR automatically.
+name: Manual checks
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_evals_dry:
+        description: "Run golden evals --dry-run"
+        type: boolean
+        default: true
+      run_lint_python:
+        description: "Compileall key Python packages"
+        type: boolean
+        default: true
+      run_opentargets_adapter:
+        description: "Live smoke Open Targets adapter (network)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install agent eval deps
+        if: ${{ inputs.run_evals_dry || inputs.run_opentargets_adapter }}
+        working-directory: agents/unified-research-agent
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Golden evals dry-run
+        if: ${{ inputs.run_evals_dry }}
+        working-directory: agents/unified-research-agent
+        run: PYTHONPATH=. python evals/run_golden.py --dry-run
+
+      - name: Python compileall (gateways + stream + agent)
+        if: ${{ inputs.run_lint_python }}
+        run: |
+          python -m compileall -q \
+            gateways/database/pubmed \
+            gateways/database/clinicaltrials \
+            gateways/database/chembl \
+            gateways/database/opentargets \
+            gateways/database/tool_contract.py \
+            stream/handler.py \
+            agents/unified-research-agent/unified_research_agent \
+            agents/framework
+
+      - name: Open Targets adapter smoke (live network)
+        if: ${{ inputs.run_opentargets_adapter }}
+        working-directory: gateways/database
+        run: |
+          PYTHONPATH=. python -c "
+          from opentargets.adapter import search_opentargets
+          r = search_opentargets('ERBB2', retmax=3)
+          assert r['status'] == 'ok', r
+          assert r['ids'].get('ensembl'), r
+          print('ok', r['ids']['ensembl'][:3], r.get('summary','')[:120])
+          "
+
+      - name: Specialist package imports
+        run: |
+          PYTHONPATH=agents:agents/unified-research-agent python agents/scripts/smoke_specialists_import.py
