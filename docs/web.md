@@ -59,6 +59,6 @@ cd web && npx playwright install chromium
 WEB_URL=http://127.0.0.1:5173 npm run e2e:browser
 ```
 
-## Out of scope (Epic 6)
+## Hosted demo (Epic 6)
 
-S3 + CloudFront hosting / FrontendUrl.
+CloudFront + S3: deploy `AgenticTargetIdFrontend` — see [deploy.md](./deploy.md). Output `FrontendUrl`; app reads `/config.json` injected from Auth/Stream Outputs.

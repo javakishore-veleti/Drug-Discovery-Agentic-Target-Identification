@@ -3,7 +3,7 @@ import { getCurrentUser } from "aws-amplify/auth";
 import { configureAmplify } from "./auth/configureAmplify";
 import { LoginForm } from "./auth/LoginForm";
 import { ChatPage } from "./chat/ChatPage";
-import { getAppConfig, type AppConfig } from "./config";
+import { resolveAppConfig, type AppConfig } from "./config";
 
 type AuthState =
   | { status: "loading" }
@@ -15,24 +15,25 @@ export default function App() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
 
   useEffect(() => {
-    try {
-      const config = getAppConfig();
-      configureAmplify(config);
-      void getCurrentUser()
-        .then((user) => {
-          setAuth({
-            status: "signed_in",
-            config,
-            email: user.signInDetails?.loginId || user.username,
-          });
-        })
-        .catch(() => setAuth({ status: "signed_out", config }));
-    } catch (err) {
-      setAuth({
-        status: "config_error",
-        message: err instanceof Error ? err.message : String(err),
+    void resolveAppConfig()
+      .then((config) => {
+        configureAmplify(config);
+        return getCurrentUser()
+          .then((user) => {
+            setAuth({
+              status: "signed_in",
+              config,
+              email: user.signInDetails?.loginId || user.username,
+            });
+          })
+          .catch(() => setAuth({ status: "signed_out", config }));
+      })
+      .catch((err: unknown) => {
+        setAuth({
+          status: "config_error",
+          message: err instanceof Error ? err.message : String(err),
+        });
       });
-    }
   }, []);
 
   if (auth.status === "loading") {

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
 import { AuthStack } from "../stacks/auth-stack";
+import { FrontendStack } from "../stacks/frontend-stack";
 import { GatewayStack } from "../stacks/gateway-stack";
 import { RuntimeStack } from "../stacks/runtime-stack";
 import { StreamStack } from "../stacks/stream-stack";
@@ -22,6 +23,7 @@ if (invokerArn) {
   app.node.setContext("gatewayInvokerArn", invokerArn);
 }
 
+// --- Backend (Stories 6.1 / Epics 2–4) — deploy as one unit via cdk deploy --all
 const gateway = new GatewayStack(app, "AgenticTargetIdGateway", {
   env,
   description:
@@ -42,7 +44,7 @@ runtime.addDependency(gateway);
 const stream = new StreamStack(app, "AgenticTargetIdStream", {
   env,
   description:
-    "Agentic Target ID — Stream Lambda SSE bridge (Stories 4.1–4.2)",
+    "Agentic Target ID — Stream Lambda SSE bridge (Stories 4.1–4.4)",
   agentRuntimeArn: runtime.agentRuntimeArn,
   streamInvokerArn: invokerArn,
 });
@@ -58,5 +60,18 @@ const auth = new AuthStack(app, "AgenticTargetIdAuth", {
   streamFunctionUrl: stream.functionUrl,
 });
 auth.addDependency(stream);
+
+// --- Frontend (Story 6.2) — S3 + CloudFront; config from Auth + Stream Outputs
+const frontend = new FrontendStack(app, "AgenticTargetIdFrontend", {
+  env,
+  description:
+    "Agentic Target ID — S3 + CloudFront web hosting (Story 6.2 / FR18)",
+  userPoolId: auth.userPool.userPoolId,
+  userPoolClientId: auth.userPoolClient.userPoolClientId,
+  identityPoolId: auth.identityPool.identityPoolId,
+  streamUrl: stream.streamUrl,
+});
+frontend.addDependency(auth);
+frontend.addDependency(stream);
 
 app.synth();

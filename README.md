@@ -84,76 +84,53 @@ Researcher
   - **Structural biology:** PDB, AlphaFold
   - **Patents:** USPTO (optional API key)
 
+## Scope (V1 pilot)
+
+Research assistance over **public** APIs (PubMed, ClinicalTrials.gov, ChEMBL) via a single AgentCore agent. **Not** clinical-grade decision support, **not** a proprietary knowledge graph, and **not** a validated-target ranking product. UI Disclaimer + agent prompt enforce research-only boundaries.
+
+**Operating model:** deploy for demos; **destroy-when-not-demoing** to control idle cost (see [docs/deploy.md](docs/deploy.md)).
+
 ## Repository layout
 
 ```text
 .
-├── agents/                 # Agent implementations (Python / Strands / AgentCore)
-│   ├── unified-research-agent/
-│   └── framework/
-├── gateways/               # MCP / database gateway tools
-│   └── database/
-├── infra/                  # AWS CDK stacks and constructs
-│   ├── backend/            # Auth, stream, agent, gateway, APIs
-│   └── frontend/           # UI hosting and deployment
-├── web/                    # React application
-├── docs/                   # Design notes and guides
+├── agents/unified-research-agent/   # Strands agent + Runtime image
+├── gateways/database/               # pubmed / clinicaltrials / chembl Lambdas
+├── infra/backend/                   # CDK: Gateway, Runtime, Stream, Auth, Frontend
+├── stream/                          # Stream Lambda + smokes
+├── web/                             # Vite React chat UI
+├── docs/deploy.md                   # Pilot deploy / Outputs / destroy
 └── README.md
 ```
 
-> Folder names may evolve as the project grows; keep this section updated.
-
 ## Prerequisites
 
-- AWS account with Amazon Bedrock model access enabled
+- AWS account with Amazon Bedrock model access for the pinned model
 - AWS CLI configured with credentials
-- Node.js 22+
-- Python 3.12+
-- Docker (agent image builds)
-- AWS CDK bootstrap in the target account/region
-- Optional: USPTO API key for patent search
+- Node.js 20+, Python 3.12+, Docker (Runtime / Lambda bundling)
+- CDK bootstrap once: `cd infra/backend && npx cdk bootstrap`
 
-## Configuration
+## Deployment (pilot)
 
-Create a `.env` at the repo root when patent search is required:
+Full steps, Outputs, create-user, Herceptin smoke, and teardown leftovers: **[docs/deploy.md](docs/deploy.md)**.
 
 ```bash
-USPTO_API_KEY=your_uspto_api_key_here
-```
-
-Obtain a key from the [USPTO Developer Portal](https://developer.uspto.gov/) if needed. Other tools work without it.
-
-## Installation
-
-```bash
-git clone https://github.com/<your-org>/Drug-Discovery-Agentic-Target-Identification.git
-cd Drug-Discovery-Agentic-Target-Identification
-
+cd infra/backend
 npm install
-# Python deps are installed per-agent / per-gateway as documented in those folders
+export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
+npx cdk deploy --all --require-approval never -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
 ```
 
-Configure your AWS account and region in CDK context (e.g. `cdk.json`), then bootstrap once:
+Open stack Output `FrontendUrl` (HTTPS). Create a Cognito user (`docs/auth.md`), sign in, ask the Herceptin mechanism question, confirm `tool_use` + answer.
+
+When idle:
 
 ```bash
-npx cdk bootstrap aws://<ACCOUNT_ID>/<REGION>
+cd infra/backend
+npx cdk destroy --all --force
 ```
 
-## Deployment
-
-Deploy with CDK (exact stack names depend on your infra layout):
-
-```bash
-npx cdk deploy --all
-```
-
-After deploy, open the CloudFront / frontend callback URL from stack outputs, create a Cognito user, and sign in.
-
-To tear down:
-
-```bash
-npx cdk destroy --all
-```
+CDK bootstrap / log retention leftovers are called out in `docs/deploy.md`.
 
 ## Example queries
 
