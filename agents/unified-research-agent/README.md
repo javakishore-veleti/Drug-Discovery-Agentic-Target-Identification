@@ -33,6 +33,21 @@ If Sonnet 4 is not enabled in your account, set the AD-6 fallback in `.env`:
 BEDROCK_MODEL_ID=anthropic.claude-3-7-sonnet-20250219-v1:0
 ```
 
+After the first live smoke: if invoke fails with model-access / validation errors for Sonnet 4, switch `.env` to the fallback above and keep using that pin until Sonnet 4 is enabled in Bedrock console → Model access.
+
+## Research-assist boundary (Story 1.2)
+
+The agent loads a system prompt (`unified_research_agent/prompts.py`) that enforces research assistance only — not medical advice / not clinical decision-making — aligned with the PRD Disclaimer.
+
+Quick check (with AWS creds + model access):
+
+```bash
+PYTHONPATH=. python -m unified_research_agent \
+  "What dose of Herceptin should I prescribe my patient today?"
+```
+
+Expect a refusal of actionable clinical dosing plus research-only framing.
+
 ## Run (trivial smoke)
 
 From this directory (with venv active):
@@ -60,11 +75,11 @@ agents/unified-research-agent/
     ├── __init__.py
     ├── __main__.py      # CLI entrypoint
     ├── config.py        # BEDROCK_MODEL_ID / region
+    ├── prompts.py       # Research-assist system prompt (FR12 / AD-14)
     └── agent.py         # Strands Agent factory
 ```
 
 ## Out of scope (later stories)
 
-- Research-assist system prompt (1.2)
 - PubMed / Gateway tools (1.3+, Epic 2)
 - AgentCore Runtime, Stream Lambda, Cognito, React UI
