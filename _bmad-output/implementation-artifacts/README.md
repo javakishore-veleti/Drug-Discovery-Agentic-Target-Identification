@@ -19,7 +19,7 @@ V1 was built largely in Cursor task-mode against `epics.md`. For BMAD mastery an
 
 - Epic 1–6 stories: **23** (`1.1`–`6.4`) — `done`
 - Epic L stories: **9** (`L.1`–`L.9`) — `done` (local specialists)
-- Epic M1–M5 stories: **23** (`M1.1`–`M5.5`) — mostly **done**; `M3.2` blocked, `M3.3` design-only backlog, `M4.6` cancelled
+- Epic M1–M5 stories: **23** (`M1.1`–`M5.5`) — **done** except `M3.2` blocked (no vector) and `M4.6` cancelled (no Kafka)
 - Total story files: **55**
 
 ## Usage
