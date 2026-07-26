@@ -864,17 +864,118 @@ Commit when done, then stop.
 
 ## Step - 41 - Cursor Reply
 ```text
+Destroyed all app stacks: Frontend → Auth → Stream → Runtime → Gateway.
+
+Committed + pushed hands-on notes: f87b675 on main.
+
+Leftovers (expected): CDK bootstrap / any retained log history — not part of the app stacks.
+
+Checking stacks for cleanup, then scaffolding the local agents layout from the sample’s structure (no deploy).
+
+No AgenticTargetId stacks remain. Scaffolding agents/framework and local specialist packages that reuse our three tools.
+
+Fixing package import paths so local CLIs resolve correctly, then updating the unified prompt and agents/README.md.
 
 
+Done — no deploy; stacks were already gone. Pushed c379ecd.
+
+Layout
+
+agents/framework/ — shared config, research-assist boundary, V1 tool wiring, Strands factory, CLI
+Five local specialists (prompts rewritten; tools = pubmed / clinicaltrials / chembl)
+medical-supervisor-agent/ — local in-process stubs only
+genetic-risk-assessment/ — local only
+unified-research-agent/ — production path; prompt now consolidates the five domains
+agents/README.md — local vs production
+Example: cd agents/drug-profile-analysis-agent && PYTHONPATH=.. python -m drug_profile_analysis_agent "...".
 ```
 
 ## Step - 42 - My Reply
 ```text
+Yes — if those specialists are real product work, missing BMAD specs is a gap. Right now you only have full BMAD coverage for V1 unified agent + platform. The new agents are mostly scaffolds + prompts, not specified deliverables.
+
+When it matters
+Intent	Specs needed?
+Folder parity / local experiments
+Nice to have (agents/README may be enough short-term)
+Domain behavior you can test and evolve
+Yes — at least brief requirements + ACs per agent
+Future deploy / supervisor orchestration
+Yes — PRD addendum or new epic + architecture note
+Without specs, prompts will drift and you won’t know “done” for each specialist.
+
+Practical BMAD approach (don’t redo 6 full PRDs)
+One planning pass for the specialist suite, not 7 separate mega-PRDs:
+
+
+Use bmad-create-prd (or bmad-help → planning for a PRD addendum).
+Context: V1 platform PRD is final (unified-research-agent is production).
+We scaffolded local specialist agents to match the sample agents layout.
+We need BMAD specs for them — lightweight, not full platform re-plan.
+Create a PRD addendum (or mini-PRD) + stories for LOCAL-ONLY specialist agents:
+- drug-profile-analysis-agent
+- patient-risk-assessment-agent
+- pathway-mapping-agent
+- cardioprotection-target-agent
+- drug-design-hypothesis-agent
+- medical-supervisor-agent (local stubs only)
+- genetic-risk-assessment (local only)
+For each: purpose, example queries, success ACs, tools allowed (V1 three tools), out of scope (no Runtime/CDK deploy).
+Production path remains unified-research-agent.
+Do not deploy. Prefer Fast path.
+Optional after that: short architecture note (“specialists share framework + tools; no multi-Runtime yet”).
+
+Bottom line: Important for quality and “replication with intent.” Not blocking tonight’s sleep — but next BMAD work should spec the specialists before you invest more in their prompts/behavior.
 
 ```
 
 ## Step - 42 - Cursor Reply
 ```text
+Creating a lightweight PRD addendum for the local specialist suite. Loading the BMAD PRD skill and existing PRD context.
 
+javakishore-veleti — treating this as a Fast-path PRD Update: V1 platform PRD stays final; we'll add a specialist-suite addendum + local-only stories + a short architecture note (no deploy, no full re-plan). Drafting from your paste now.
+
+
+avakishore-veleti — Fast-path PRD update done (no deploy). Specs are in place so specialists aren’t just folder parity.
+
+Artifacts (bef9416)
+
+PRD still final; pointer in §6.3 + Non-Goals
+Addendum §K — purpose, example queries, ACs, V1 tools only, out of scope for all 7 local agents
+epics-local-specialists.md — Epic L stories L.1–L.9
+Architecture note — specialists share framework + tools; no multi-Runtime yet
+Rule of thumb: cloud “done” = unified + Epics 1–6; specialist “done” = LA ACs locally before more prompt investment.
+
+
+```
+
+## Step - 43 - My Reply
+```text
+
+```
+
+## Step - 43 - Cursor Reply
+```text
+
+```
+
+
+## Step - 44 - My Reply
+```text
+
+```
+
+## Step - 44 - Cursor Reply
+```text
+
+```
+
+## Step - 45 - My Reply
+```text
+
+```
+
+## Step - 45 - Cursor Reply
+```text
 
 ```
