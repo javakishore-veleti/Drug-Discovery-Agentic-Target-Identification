@@ -6,7 +6,7 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 
 > Research assistance only. **Not** medical advice, clinical decision support, or a validated-target ranking product.
 
-**50 persona use cases** (discovery, translational, chemistry, safety, clinical, BD, academia, bioinformatics, builders): see [`USE_CASES.md`](USE_CASES.md).
+**50 persona use cases:** [`USE_CASES.md`](USE_CASES.md) · **agent + App UI prompts (tables):** [`USE_CASES_Agents_AppUI.md`](USE_CASES_Agents_AppUI.md)
 
 ## What is target identification?
 
