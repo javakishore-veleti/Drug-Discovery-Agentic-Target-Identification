@@ -67,7 +67,7 @@ python3 stream/scripts/smoke_stream_sigv4.py "What is our research focus?"
 
 ## Security notes
 
-- **Do** SigV4 the `StreamUrl` from a trusted client (CLI smoke now; Cognito Identity Pool in Story 4.2).
+- **Do** SigV4 the `StreamUrl` via Cognito Identity Pool credentials (Story 4.2) — see [`docs/auth.md`](auth.md).
 - **Do not** embed AgentCore Runtime ARNs or Runtime IAM keys in frontend code or public docs as a client path.
 - Function URL auth type: `AWS_IAM` (JWT authorizer on the URL is out of V1 scope).
 
@@ -75,10 +75,9 @@ python3 stream/scripts/smoke_stream_sigv4.py "What is our research focus?"
 
 - Handler: `stream/handler.py` (Python 3.12).
 - CDK: `infra/backend/stacks/stream-stack.ts`.
-- V1 returns a buffered `text/event-stream` body after Runtime completes (Python managed runtime has no native `streamifyResponse`). Event order still satisfies AD-4; byte-level progressive streaming can be added later (e.g. Lambda Web Adapter) without changing event types.
+- V1 returns a buffered `text/event-stream` body after Runtime completes (Python managed runtime has no native `streamifyResponse`). Event order still satisfies AD-4; mid-turn `tool_use` / token streaming can tighten in Story 4.3 if needed.
 
-## Out of scope (Story 4.2+)
+## Out of scope (Story 4.3+)
 
-- Cognito User Pool → Identity Pool → SigV4 (Story 4.2)
 - Mapping `tool_use` / `tool_result` / tool `error` (Story 4.3)
 - Stall observability polish (Story 4.4)

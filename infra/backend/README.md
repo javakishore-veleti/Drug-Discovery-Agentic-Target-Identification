@@ -4,9 +4,10 @@
 
 | Stack | Purpose |
 | --- | --- |
+| `AgenticTargetIdAuth` | Cognito User Pool + Identity Pool (Story 4.2 / AD-1) |
 | `AgenticTargetIdGateway` | AgentCore Gateway + pubmed / clinicaltrials / chembl Lambdas |
 | `AgenticTargetIdRuntime` | AgentCore Runtime (ARM64 agent) + Memory STM (`AGENTCORE_MEMORY_ID`) |
-| `AgenticTargetIdStream` | Stream Lambda SSE bridge + IAM Function URL (Story 4.1) |
+| `AgenticTargetIdStream` | Stream Lambda SSE + IAM Function URL (Stories 4.1–4.2) |
 
 Gateway tools:
 
@@ -30,14 +31,14 @@ cd infra/backend
 npm install
 export GATEWAY_INVOKER_ARN="$(aws sts get-caller-identity --query Arn --output text)"
 # Gateway only, or Gateway + Runtime (Story 3.1):
-npx cdk deploy AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream \
+npx cdk deploy AgenticTargetIdAuth AgenticTargetIdGateway AgenticTargetIdRuntime AgenticTargetIdStream \
   --require-approval never \
   -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
 ```
 
 Copy `GatewayUrl` into `agents/unified-research-agent/.env` as `AGENTCORE_GATEWAY_URL` for local agent CLI. Runtime receives the same URL via env automatically.
 
-Stream smoke (SigV4 Function URL — not Runtime IAM): [`docs/stream.md`](../../docs/stream.md).
+Stream + Cognito Identity Pool SigV4: [`docs/stream.md`](../../docs/stream.md), [`docs/auth.md`](../../docs/auth.md).
 
 ## Outputs
 
@@ -52,6 +53,7 @@ Stream smoke (SigV4 Function URL — not Runtime IAM): [`docs/stream.md`](../../
 | `BedrockModelId` | Pinned AD-6 model on Runtime |
 | `AgentCoreMemoryId` | Set as `AGENTCORE_MEMORY_ID` on Runtime (Story 3.2) |
 | `StreamUrl` | IAM Function URL for SSE clients (`STREAM_URL`) — never give browsers Runtime IAM |
+| `UserPoolId` / `UserPoolClientId` / `IdentityPoolId` | Cognito admin create-user + Identity Pool SigV4 (Story 4.2) |
 
 AgentCore Gateway may expose wire MCP names as `${target}___${tool}`. The agent normalizes to logical AD-3 names.
 

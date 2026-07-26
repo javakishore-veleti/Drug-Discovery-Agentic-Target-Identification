@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
+import { AuthStack } from "../stacks/auth-stack";
 import { GatewayStack } from "../stacks/gateway-stack";
 import { RuntimeStack } from "../stacks/runtime-stack";
 import { StreamStack } from "../stacks/stream-stack";
@@ -41,12 +42,21 @@ runtime.addDependency(gateway);
 const stream = new StreamStack(app, "AgenticTargetIdStream", {
   env,
   description:
-    "Agentic Target ID — Stream Lambda SSE bridge (Story 4.1)",
+    "Agentic Target ID — Stream Lambda SSE bridge (Stories 4.1–4.2)",
   agentRuntimeArn: runtime.agentRuntimeArn,
   streamInvokerArn: invokerArn,
 });
 stream.addDependency(runtime);
 // Stream Lambda may InvokeAgentRuntime; browsers never get this grant (AD-1).
 runtime.grantInvoke(stream.streamFunction);
+
+// Auth after Stream so Identity Pool role can be granted InvokeFunctionUrl without a cycle.
+const auth = new AuthStack(app, "AgenticTargetIdAuth", {
+  env,
+  description:
+    "Agentic Target ID — Cognito User Pool + Identity Pool (Story 4.2 / AD-1)",
+  streamFunctionUrl: stream.functionUrl,
+});
+auth.addDependency(stream);
 
 app.synth();

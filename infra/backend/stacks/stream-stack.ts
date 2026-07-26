@@ -13,17 +13,18 @@ export interface StreamStackProps extends cdk.StackProps {
 }
 
 /**
- * Story 4.1 — Stream Lambda SSE bridge + IAM Function URL.
+ * Stories 4.1–4.2 — Stream Lambda SSE bridge + IAM Function URL.
  *
  * - Python 3.12 handler under ``stream/``
  * - Emits AD-4 Stream Events; owns sessionId (AD-7)
  * - Clients SigV4 the Function URL — never AgentCore Runtime IAM (AD-1)
- * - Cognito Identity Pool wiring is Story 4.2
+ * - Cognito Identity Pool grant is applied from AuthStack (avoids cyclic deps)
  */
 export class StreamStack extends cdk.Stack {
   public readonly streamUrl: string;
   public readonly streamFunctionName: string;
   public readonly streamFunction: lambda.IFunction;
+  public readonly functionUrl: lambda.FunctionUrl;
 
   constructor(scope: Construct, id: string, props: StreamStackProps) {
     super(scope, id, props);
@@ -105,6 +106,7 @@ export class StreamStack extends cdk.Stack {
       fnUrl.grantInvokeUrl(new iam.AccountRootPrincipal());
     }
 
+    this.functionUrl = fnUrl;
     this.streamUrl = fnUrl.url;
     this.streamFunctionName = fn.functionName;
 
@@ -121,8 +123,13 @@ export class StreamStack extends cdk.Stack {
     });
     new cdk.CfnOutput(this, "StreamAuthNote", {
       value:
-        "Clients SigV4 this StreamUrl only. Do not put Runtime IAM in the browser (AD-1).",
-      description: "Security reminder for Story 4.1 docs / samples",
+        "Clients SigV4 this StreamUrl via Identity Pool (or ops CLI). Never Runtime IAM in the browser (AD-1).",
+      description: "Security reminder for Stories 4.1–4.2",
     });
+  }
+
+  /** Grant IAM Function URL invoke (used if Auth is wired after Stream). */
+  public grantInvokeUrl(grantee: iam.IGrantable): void {
+    this.functionUrl.grantInvokeUrl(grantee);
   }
 }
