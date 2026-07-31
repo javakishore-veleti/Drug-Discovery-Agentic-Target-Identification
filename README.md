@@ -10,6 +10,7 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 
 ## Table of contents
 
+- [Code understanding (local Stream path)](CODE_UNDERSTANDING.md)
 - [Purpose of this repo](#purpose-of-this-repo)
 - [Tech stack](#tech-stack)
 - [Agents (what each one does)](#agents-what-each-one-does)
