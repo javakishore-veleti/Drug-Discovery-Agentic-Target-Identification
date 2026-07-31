@@ -314,6 +314,20 @@ GitHub **Actions → Manual checks → Run workflow** (`workflow_dispatch` only)
 
 ## FAQ
 
+### How does the UI look for this codebase?
+
+Local stack (`VITE_STACK_MODE=local`, Vite `:5173` + FastAPI Stream `:8787`). Demo email gate (no Cognito), then the research chat with agent picker, example prompts, and help link.
+
+**Local login**
+
+![Agentic Target ID local login — demo email and Continue locally](docs/images/ui/local-login.png)
+
+**Research chat (after Continue locally)**
+
+![Agentic Target ID local chat — agent picker, example prompts, and question box](docs/images/ui/local-chat-ui.png)
+
+Run: `npm run local:stream-and-ui-up` → open `http://127.0.0.1:5173/`. AWS Cognito path looks similar after real sign-in (`VITE_STACK_MODE=aws`).
+
 ### What if Bedrock keeps requesting tools — can it infinite-loop?
 
 **Yes, in principle.** This repo has **no hard per-turn tool budget**. The Strands agent loop continues as long as Bedrock returns another `toolUse` instead of a final text-only answer. Broad prompts can mean many Bedrock calls and higher cost.

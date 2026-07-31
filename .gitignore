@@ -2,6 +2,9 @@
 .DS_Store
 **/.DS_Store
 
+# Local scratch (Playwright browsers, one-off capture tools)
+.tmp/
+
 # Local stack runtime
 .local-run/
 
