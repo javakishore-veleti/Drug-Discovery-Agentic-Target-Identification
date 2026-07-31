@@ -31,7 +31,12 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 
 ## Purpose of this repo
 
-This repository is a **spec-driven pilot** that shows how early Target ID research can run as an **agentic AWS workflow** instead of ad-hoc literature hunting across many tabs.
+This repo focuses on **two things at once**:
+
+1. **Spec-driven development with AI (BMAD Method)** — plan first (brief → PRD → architecture → epics/stories), then implement against those artifacts so humans and coding agents share one contract—not ad-hoc vibe coding.
+2. **Strands agents on Amazon Bedrock for Target ID** — run research agents (Strands + Claude on Bedrock) that plan tool use, look up public biomedical sources, and stream cited answers. Local day-to-day uses host FastAPI + Bedrock; demos use the full **AgentCore** AWS path (Runtime / Gateway / Memory).
+
+Together, that replaces tab-hopping across PubMed, trials, and chemistry DBs with a governed, evidence-backed chat workflow—while also serving as a BMAD mastery / reference build.
 
 **What it is trying to resolve**
 
@@ -209,42 +214,41 @@ You (Vite :5173)
 
 ### Local sequence: UI → FastAPI → Bedrock → UI
 
-One Send for a **single** local agent (`agentId`). Bedrock never calls PubMed itself; the host runs tools and calls Bedrock again until the model returns a final answer (no further `tool_use`).
+One Send for a **single** local agent (`agentId`): Vite UI (`:5173`) → FastAPI (`local/stream_app.py` `:8787`) → Strands agent → Bedrock, with host adapters for PubMed / CT.gov / ChEMBL / Open Targets. Bedrock never calls those APIs itself; the host runs tools and calls Bedrock again until the model returns a final answer (no further `tool_use`).
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User
-    participant UI as Vite UI<br/>(:5173)
-    participant API as FastAPI Stream<br/>(local/stream_app.py :8787)
-    participant Agent as Strands agent<br/>(one agentId)
-    participant BR as Amazon Bedrock<br/>(Claude)
-    participant Tools as Host tool adapters<br/>(PubMed / CT.gov / ChEMBL / OT)
+    participant UI as Vite UI
+    participant API as FastAPI Stream
+    participant Agent as Strands agent
+    participant BR as Amazon Bedrock
+    participant Tools as Host tool adapters
 
-    User->>UI: Enter prompt + Send
-    UI->>API: POST JSON { message, sessionId?, agentId }
+    User->>UI: Enter prompt and Send
+    UI->>API: POST message, sessionId, agentId
     API-->>UI: SSE session_started
-
-    API->>Agent: agent(message)
-    Note over Agent: Load/reuse session agent<br/>system prompt for this agentId
+    API->>Agent: Invoke agent for agentId
+    Note over Agent: Load or reuse session agent and system prompt
 
     loop Until Bedrock returns text without tool_use
-        Agent->>BR: model.stream(messages + tools schema)
-        BR-->>Agent: assistant turn<br/>(text and/or tool_use)
+        Agent->>BR: model.stream with messages and tools
+        BR-->>Agent: Assistant turn with text and/or tool_use
         alt Bedrock requested tool_use
-            Agent->>Tools: Run tool(s) on host
-            Tools-->>Agent: tool_result (ids / summary / error)
-            Note over Agent: Append tool_result<br/>to conversation; call Bedrock again
-        else Final answer (no tool_use)
+            Agent->>Tools: Run tools on host
+            Tools-->>Agent: tool_result ids summary or error
+            Note over Agent: Append tool_result and call Bedrock again
+        else Final answer without tool_use
             Note over Agent: Stop tool loop
         end
     end
 
-    Agent-->>API: Final agent result + message history
-    API-->>UI: SSE tool_use / tool_result<br/>(from this turn's history)
-    API-->>UI: SSE token… (answer chunks)
-    API-->>UI: SSE debug (optional) + done
-    UI-->>User: Transcript updated
+    Agent-->>API: Final result and message history
+    API-->>UI: SSE tool_use and tool_result
+    API-->>UI: SSE token answer chunks
+    API-->>UI: SSE debug and done
+    UI-->>User: Transcript updated in the browser
 ```
 
 ### AWS demo path
