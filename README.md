@@ -26,6 +26,7 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 - [Local sequence: UI → FastAPI → Bedrock → UI](#local-sequence-ui--fastapi--bedrock--ui)
 - [Why so many agents? Do they have separate brains?](#why-so-many-agents-do-they-have-separate-brains)
 - [Deploy (pilot)](#deploy-pilot)
+- [FAQ](#faq)
 - [Security](#security)
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
@@ -311,7 +312,70 @@ npx cdk destroy --all --force -c gatewayInvokerArn="$GATEWAY_INVOKER_ARN"
 
 GitHub **Actions → Manual checks → Run workflow** (`workflow_dispatch` only). Runs golden evals `--dry-run`, Python compileall, optional Open Targets adapter smoke—**never** on every push/PR.
 
+## FAQ
+
+### What if Bedrock keeps requesting tools — can it infinite-loop?
+
+**Yes, in principle.** This repo has **no hard per-turn tool budget**. The Strands agent loop continues as long as Bedrock returns another `toolUse` instead of a final text-only answer. Broad prompts can mean many Bedrock calls and higher cost.
+
+Practical brakes (not a true “max tools” guard):
+
+| Path | What eventually stops a runaway turn |
+| --- | --- |
+| **Local UI** | Soft stall ~5 minutes with no `done`; you can cancel/stop the browser request |
+| **AWS Stream Lambda** | Function timeout (~5 minutes) ends the turn |
+| **Each tool** | Wall-clock budget ≤ ~45s then `status: error` (tool does not hang forever) |
+
+Mitigations today: keep prompts focused, watch the transcript / local `/bedrock-trace` call count, and prefer **destroy-when-not-demoing** on AWS. A hard max-tool or max-Bedrock-call cap is not implemented yet.
+
+### How can I tell if Bedrock spend is leaking and raising my bill?
+
+Bedrock is billed per model invocation (and tokens), including turns that only plan tools. Forgotten AWS stacks or a chatty agent loop can raise cost without an obvious UI “leak.”
+
+**Primary habit:** `cdk destroy` when not demoing ([`docs/deploy.md`](docs/deploy.md)).
+
+**Detection / alerts** ([`docs/ops.md`](docs/ops.md) — Spend / budget alarms):
+
+1. **AWS Cost Explorer** — filter by service **Amazon Bedrock** (and Lambda / AgentCore if deployed); look at daily cost spikes.
+2. **AWS Budgets** — monthly budget + email (example in `docs/ops.md`).
+3. **Cost Anomaly Detection** — AWS Billing console for unexpected jumps.
+4. **CloudWatch / Ops stack** (when deployed) — dashboards and alarms for the pilot; not a full FinOps product.
+5. **Local day-to-day** — use host Stream + Vite; check `bedrockCallCount` in turn debug / `http://127.0.0.1:8787/bedrock-trace` so you see how many Bedrock calls one Send used. Local still bills Bedrock via your AWS credentials.
+
+There is no in-app “secret Bedrock meter.” Treat Cost Explorer + budgets as the source of truth.
+
+### What in the Bedrock response names the tool?
+
+Tool names are **not** free-form English in the answer text. They appear as structured **content blocks** on the assistant message.
+
+Canonical shape (Converse / Strands message content):
+
+```json
+{
+  "toolUse": {
+    "toolUseId": "tooluse_...",
+    "name": "pubmed",
+    "input": { "query": "trastuzumab mechanism of action" }
+  }
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `toolUse.name` | Tool name Strands will run — e.g. `pubmed`, `clinicaltrials`, `chembl`, `opentargets` |
+| `toolUse.toolUseId` | Correlates with the later `toolResult` |
+| `toolUse.input` | Arguments for that tool |
+
+This repo surfaces that as:
+
+- **SSE** — `{ "type": "tool_use", "tool": "pubmed", ... }` (from `toolUse.name` in [`tool_trace.py`](agents/unified-research-agent/unified_research_agent/tool_trace.py))
+- **UI transcript** — `tool_use` lines with the tool name
+- **Local Bedrock trace** — kinds like `toolUse:pubmed` on `/bedrock-trace`
+
+A final answer without tools is usually plain `text` blocks only — no `toolUse` object.
+
 ## Security
+
 
 - No secrets or AWS keys in git
 - Cognito + SigV4 Stream only; no browser→AgentCore Runtime invoke
