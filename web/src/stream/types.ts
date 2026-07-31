@@ -19,6 +19,9 @@ export type TurnDebug = {
   explanation?: Record<string, string>;
   savedTo?: string;
   gatewayTools?: string;
+  bedrockCallCount?: number;
+  bedrockModelId?: string;
+  bedrockTraceUrl?: string;
 };
 
 export type StreamEvent = {

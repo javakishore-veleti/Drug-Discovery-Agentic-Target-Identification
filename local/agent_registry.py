@@ -204,4 +204,13 @@ def list_agents() -> list[dict[str, str]]:
 def create_agent_by_id(agent_id: str) -> Any:
     aid = normalize_agent_id(agent_id)
     factory: Callable[[], Any] = AGENT_CATALOG[aid]["factory"]
-    return factory()
+    agent = factory()
+    # Local Stream: wrap Bedrock model so every model.stream() is traced.
+    try:
+        from unified_research_agent.config import get_aws_region
+        from local.traced_bedrock import wrap_agent_model
+
+        wrap_agent_model(agent, region_name=get_aws_region())
+    except Exception:  # noqa: BLE001
+        pass
+    return agent

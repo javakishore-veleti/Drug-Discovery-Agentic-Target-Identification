@@ -72,21 +72,18 @@ export function ArchitectureModal({ open, mode, onClose }: Props) {
                 : "AWS Lambda Stream authenticates the request (SigV4) and opens the session (unified agent only)."}
             </li>
             <li>
-              <strong>Research agent (Bedrock)</strong> — Strands runs on the
-              host and calls <strong>Bedrock (Claude)</strong> for planning and
-              the final answer (billable). Bedrock does{" "}
-              <strong>not</strong> execute PubMed/ChEMBL/etc. inside the model
-              API — it only <em>decides</em> whether to request a tool (
-              <code>tool_use</code>).
+              <strong>Research agent (Bedrock)</strong> — Your Mac calls{" "}
+              <strong>Bedrock (Claude)</strong> (billable). Bedrock may reply
+              with a <em>tool instruction</em> (“please run pubmed with this
+              query”) instead of a finished answer. That is{" "}
+              <strong>not</strong> Bedrock calling PubMed — it is a message back
+              to your Mac.
             </li>
             <li>
-              <strong>Tools are not guaranteed every turn</strong> — Calling
-              tools is agentic (model choice + system prompt). Literature
-              questions are instructed to use PubMed first, but there is no
-              hard runtime lock that forces a tool. The guarantee you can trust
-              is the transcript: if you see <code>tool_use</code> /{" "}
-              <code>tool_result (ok)</code>, that tool ran; if not, the answer
-              may be model-only knowledge.
+              <strong>Tools are not guaranteed every turn</strong> — The model
+              chooses whether to ask for a lookup. Trust the transcript:{" "}
+              <code>tool_result (ok)</code> means your Mac ran the tool; if
+              there is none, the answer may be model-only knowledge.
             </li>
             <li>
               <strong>AWS credentials (Bedrock only)</strong> —{" "}

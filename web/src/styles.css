@@ -233,6 +233,31 @@ button.linkish:hover {
   margin: 0.35rem 0 0;
 }
 
+.bedrock-trace-viewer {
+  border: 1px solid #9bb8a8;
+  background: #eef6f1;
+  padding: 0.65rem 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.bedrock-trace-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-family: "IBM Plex Serif", Georgia, serif;
+}
+
+.bedrock-trace-header p {
+  margin: 0.25rem 0 0;
+}
+
+.bedrock-trace-frame {
+  width: 100%;
+  height: 280px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
 .host-definition {
   margin: 0;
   padding: 0.65rem 0.75rem;

@@ -93,17 +93,17 @@ export function WhatHappenedModal({ open, turn, onClose }: Props) {
           </p>
 
           <p className="host-definition">
-            <strong>Host</strong> means <strong>your Mac</strong> — the machine
-            running local Stream (<code>local/stream_app.py</code> on{" "}
-            <code>:8787</code>). It is <em>not</em> Bedrock, Cognito, or a remote
-            server. PubMed/ChEMBL adapters run here; Bedrock only plans and writes
-            the answer in AWS.
+            <strong>Where does the lookup happen?</strong> On{" "}
+            <strong>your Mac</strong>, not in Bedrock. Bedrock only sends a tool
+            instruction (“please run pubmed…”). Your Mac calls PubMed / ChEMBL /
+            ClinicalTrials / Open Targets over HTTP, then sends those results
+            back to Bedrock for the final answer. Bedrock never opens those sites.
           </p>
 
           <ol className="arch-steps">
             <li>
-              <strong>Your browser</strong> POSTed the prompt to the host Stream
-              at <code>:8787</code>
+              <strong>Your browser</strong> sent the prompt to Stream on your Mac
+              (<code>:8787</code>)
               {debug?.agentId ? (
                 <>
                   {" "}
@@ -113,52 +113,54 @@ export function WhatHappenedModal({ open, turn, onClose }: Props) {
               .
             </li>
             <li>
-              <strong>Host (your Mac)</strong> ran the selected Strands agent and
-              called <strong>Bedrock</strong> (billable) using your Mac AWS
-              credentials (<code>~/.aws</code> / <code>AWS_*</code>).
+              <strong>Your Mac</strong> called <strong>Bedrock</strong> (billable)
+              with the prompt and available tool names, using your AWS credentials.
             </li>
             <li>
-              <strong>Bedrock (AWS cloud)</strong>{" "}
+              <strong>Bedrock</strong>{" "}
               {requested
-                ? "requested tool calls — it does not call PubMed/ChEMBL itself."
-                : "did not request tools this turn (answer may be model-only)."}
+                ? "did not look anything up. It only replied to your Mac with a tool instruction (e.g. “please run pubmed with this query”) instead of finishing the answer. No PubMed/ChEMBL traffic leaves AWS for that step."
+                : "answered from the model alone this turn (no tool instruction to your Mac)."}
             </li>
             <li>
-              <strong>Host tools (your Mac)</strong>{" "}
+              <strong>Your Mac</strong>{" "}
               {executed
-                ? "ran local adapters (HTTP to PubMed/ChEMBL/…) and sent IDs/summaries back to Bedrock."
-                : "did not execute on your Mac this turn."}
+                ? "is where the lookup happens: it HTTP-calls PubMed / ChEMBL / ClinicalTrials / Open Targets, then calls Bedrock again with those results so Bedrock can write the final answer."
+                : "did not run any tools this turn — so no evidence lookup happened anywhere."}
             </li>
             <li>
-              <strong>UI</strong> painted <code>tool_use</code> /{" "}
-              <code>tool_result</code> / answer tokens from the SSE response.
+              <strong>UI</strong> showed tool lines and the final answer from the
+              Stream response.
             </li>
           </ol>
 
           <div className="turn-debug-badges">
             <span className={requested ? "badge ok" : "badge no"}>
-              Bedrock requested tools: {requested ? "yes" : "no"}
+              Model said “use a tool”: {requested ? "yes" : "no"}
             </span>
             <span className={executed ? "badge ok" : "badge no"}>
-              Host (your Mac) executed tools: {executed ? "yes" : "no"}
+              Your Mac ran the tool: {executed ? "yes" : "no"}
             </span>
           </div>
 
           <div className="turn-debug-grid">
             <div>
-              <h4>Tools Bedrock asked for</h4>
-              {toolUses.length === 0 && bedrockRequests.length === 0 ? (
+              <h4>Lookups the model asked your Mac to run</h4>
+              <p className="muted small">
+                Each line is a separate instruction. Seeing <strong>pubmed</strong>{" "}
+                several times is normal: the model often runs{" "}
+                <em>different search queries</em> (pathway, ADCC, resistance, …)
+                in one turn — not a bug and not Bedrock hitting PubMed itself.
+              </p>
+              {bedrockRequests.length === 0 && toolUses.length === 0 ? (
                 <p className="muted small">None.</p>
-              ) : (
-                <ul>
-                  {toolUses.map((t, i) => (
-                    <li key={`u-${i}`}>
-                      <strong>{t.tool}</strong>
-                    </li>
-                  ))}
+              ) : bedrockRequests.length > 0 ? (
+                <ol>
                   {bedrockRequests.map((r, i) => (
                     <li key={`br-${i}`}>
-                      <strong>{String(r.tool || "tool")}</strong>
+                      <strong>
+                        #{i + 1} {String(r.tool || "tool")}
+                      </strong>
                       {r.input ? (
                         <pre className="mini-pre">
                           {JSON.stringify(r.input, null, 2)}
@@ -166,7 +168,17 @@ export function WhatHappenedModal({ open, turn, onClose }: Props) {
                       ) : null}
                     </li>
                   ))}
-                </ul>
+                </ol>
+              ) : (
+                <ol>
+                  {toolUses.map((t, i) => (
+                    <li key={`u-${i}`}>
+                      <strong>
+                        #{i + 1} {t.tool}
+                      </strong>
+                    </li>
+                  ))}
+                </ol>
               )}
             </div>
             <div>
@@ -213,6 +225,27 @@ export function WhatHappenedModal({ open, turn, onClose }: Props) {
               <code>npm run local:up</code>) and send a new prompt.
             </p>
           )}
+
+          {typeof debug?.bedrockCallCount === "number" ? (
+            <p>
+              <strong>Bedrock calls this turn:</strong> {debug.bedrockCallCount}
+              {debug.bedrockModelId ? (
+                <>
+                  {" "}
+                  · model <code>{debug.bedrockModelId}</code>
+                </>
+              ) : null}
+              {debug.bedrockTraceUrl ? (
+                <>
+                  {" "}
+                  ·{" "}
+                  <a href={debug.bedrockTraceUrl} target="_blank" rel="noreferrer">
+                    live HTML trace
+                  </a>
+                </>
+              ) : null}
+            </p>
+          ) : null}
 
           {debug?.savedTo ? (
             <p className="muted small">

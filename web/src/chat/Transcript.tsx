@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { TranscriptItem } from "../stream/types";
+import { BedrockTraceViewer } from "./BedrockTraceViewer";
 import { WhatHappenedModal, type WhatHappenedTurn } from "./WhatHappenedModal";
 
 function formatIds(ids?: { pmid?: string[]; nct?: string[]; chembl?: string[] }) {
@@ -13,10 +14,18 @@ function formatIds(ids?: { pmid?: string[]; nct?: string[]; chembl?: string[] })
 
 type Props = {
   items: TranscriptItem[];
+  /** Local stack only — show Bedrock HTML trace under each completed answer. */
+  streamUrl?: string;
+  showBedrockTrace?: boolean;
 };
 
-export function Transcript({ items }: Props) {
+export function Transcript({ items, streamUrl, showBedrockTrace }: Props) {
   const [happened, setHappened] = useState<WhatHappenedTurn | null>(null);
+
+  // Latest completed assistant turn — server keeps only latest Bedrock trace.
+  const latestDoneAssistantId = [...items]
+    .reverse()
+    .find((i) => i.kind === "assistant_turn" && i.done)?.id;
 
   return (
     <div className="transcript" aria-live="polite">
@@ -35,6 +44,16 @@ export function Transcript({ items }: Props) {
             </div>
           );
         }
+        const showTrace =
+          showBedrockTrace &&
+          !!streamUrl &&
+          item.done &&
+          item.id === latestDoneAssistantId;
+
+        const refreshToken =
+          item.debug?.requestId ||
+          `${item.id}-${item.debug?.bedrockCallCount ?? "done"}`;
+
         return (
           <div key={item.id} className="bubble assistant">
             <div className="label">Research agent</div>
@@ -87,8 +106,18 @@ export function Transcript({ items }: Props) {
                 <span className="muted small">
                   {" "}
                   — Bedrock request, host tools, and proof for this answer
+                  {typeof item.debug?.bedrockCallCount === "number"
+                    ? ` · ${item.debug.bedrockCallCount} Bedrock call(s)`
+                    : ""}
                 </span>
               </p>
+            ) : null}
+
+            {showTrace && streamUrl ? (
+              <BedrockTraceViewer
+                streamUrl={streamUrl}
+                refreshToken={refreshToken}
+              />
             ) : null}
 
             {item.stalled ? (

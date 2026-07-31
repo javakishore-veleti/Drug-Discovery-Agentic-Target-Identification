@@ -232,7 +232,11 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
         onClose={() => setArchOpen(false)}
       />
 
-      <Transcript items={items} />
+      <Transcript
+        items={items}
+        showBedrockTrace={config.mode === "local"}
+        streamUrl={config.streamUrl}
+      />
 
       {status ? (
         <p className="error" role="alert">

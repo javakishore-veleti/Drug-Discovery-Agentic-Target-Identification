@@ -20,7 +20,7 @@ from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 _REPO = Path(__file__).resolve().parents[1]
 _URA = _REPO / "agents" / "unified-research-agent"
@@ -45,7 +45,13 @@ from local.agent_registry import (  # noqa: E402
     list_agents,
     normalize_agent_id,
 )
+from local.bedrock_trace import TRACE, render_trace_html  # noqa: E402
+from local.traced_bedrock import TracedBedrockModel, wrap_agent_model  # noqa: E402
 from local.turn_debug import build_turn_debug, persist_turn_debug  # noqa: E402
+from unified_research_agent.config import (  # noqa: E402
+    get_aws_region,
+    get_bedrock_model_id,
+)
 from unified_research_agent.tool_trace import extract_activity_from_messages  # noqa: E402
 
 logger = logging.getLogger("local.stream")
@@ -109,7 +115,10 @@ def _agent_for(session_id: str, agent_id: str) -> Any:
             "agent_id": agent_id,
             "agent": create_agent_by_id(agent_id),
         }
-    return _sessions[session_id]["agent"]
+    agent = _sessions[session_id]["agent"]
+    if not isinstance(getattr(agent, "model", None), TracedBedrockModel):
+        wrap_agent_model(agent, region_name=get_aws_region())
+    return agent
 
 
 def _build_sse(
@@ -148,6 +157,13 @@ def _build_sse(
 
     try:
         agent = _agent_for(session_id, agent_id)
+        TRACE.begin_turn(
+            request_id=request_id,
+            session_id=session_id,
+            agent_id=agent_id,
+            model_id=get_bedrock_model_id(),
+            user_message=message,
+        )
         start = len(getattr(agent, "messages", []) or [])
         result = agent(message)
         tool_events, reasoning = extract_activity_from_messages(
@@ -224,15 +240,19 @@ def _build_sse(
             request_id=request_id,
             session_id=session_id,
         )
+        bedrock_trace = TRACE.end_turn()
+        debug["bedrockCallCount"] = bedrock_trace.get("bedrockCallCount")
+        debug["bedrockModelId"] = bedrock_trace.get("modelId")
+        debug["bedrockTraceUrl"] = "http://127.0.0.1:8787/bedrock-trace"
         debug_path = persist_turn_debug(debug)
         if debug_path:
             debug["savedTo"] = debug_path
         logger.info(
-            "turn_debug agent_id=%s tools_requested=%s tools_executed_host=%s path=%s",
+            "turn_debug agent_id=%s bedrock_calls=%s tools_requested=%s tools_executed_host=%s",
             agent_id,
+            debug.get("bedrockCallCount"),
             debug.get("toolsRequestedByBedrock"),
             debug.get("toolsExecutedOnHost"),
-            debug_path,
         )
         parts.append(
             _sse(
@@ -247,6 +267,10 @@ def _build_sse(
         )
     except Exception as exc:  # noqa: BLE001
         logger.exception("local_stream_turn_failed agent_id=%s", agent_id)
+        try:
+            TRACE.end_turn()
+        except Exception:  # noqa: BLE001
+            pass
         parts.append(
             _sse(
                 {
@@ -278,6 +302,20 @@ def health() -> dict[str, Any]:
 @app.get("/agents")
 def agents() -> dict[str, Any]:
     return {"defaultAgentId": DEFAULT_AGENT_ID, "agents": list_agents()}
+
+
+@app.get("/bedrock-trace", response_class=HTMLResponse)
+def bedrock_trace_html() -> HTMLResponse:
+    """Latest-turn Bedrock call viewer (auto-refresh HTML; no history)."""
+    return HTMLResponse(
+        content=render_trace_html(),
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+@app.get("/bedrock-trace.json")
+def bedrock_trace_json() -> dict[str, Any]:
+    return TRACE.as_dict()
 
 
 @app.post("/")
