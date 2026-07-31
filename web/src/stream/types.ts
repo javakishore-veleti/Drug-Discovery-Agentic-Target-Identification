@@ -6,6 +6,21 @@ export type SourceIds = {
   chembl?: string[];
 };
 
+export type TurnDebug = {
+  requestId?: string;
+  sessionId?: string;
+  agentId?: string;
+  at?: string;
+  userMessage?: string;
+  toolsRequestedByBedrock?: boolean;
+  toolsExecutedOnHost?: boolean;
+  toolActivity?: unknown[];
+  conversationDelta?: unknown[];
+  explanation?: Record<string, string>;
+  savedTo?: string;
+  gatewayTools?: string;
+};
+
 export type StreamEvent = {
   type: string;
   sessionId?: string;
@@ -18,6 +33,8 @@ export type StreamEvent = {
   summary?: string;
   message?: string;
   code?: string;
+  debug?: TurnDebug;
+  agentId?: string;
 };
 
 export type TranscriptItem =
@@ -38,4 +55,5 @@ export type TranscriptItem =
       errors: string[];
       stalled?: boolean;
       done: boolean;
+      debug?: TurnDebug;
     };

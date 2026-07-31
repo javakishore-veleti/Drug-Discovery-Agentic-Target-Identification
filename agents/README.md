@@ -10,6 +10,8 @@
 
 Domain CLIs that reuse `framework/` + the same V1 tools. **Do not deploy** as separate AgentCore Runtimes for V1.
 
+With `VITE_STACK_MODE=local`, the web UI agent dropdown posts `agentId` to `local/stream_app.py`, which loads the matching factory from `local/agent_registry.py`. AWS / CloudFront stays unified-only.
+
 | Package | Focus |
 | --- | --- |
 | [`drug-profile-analysis-agent/`](./drug-profile-analysis-agent/) | MoA / toxicity / PK context |

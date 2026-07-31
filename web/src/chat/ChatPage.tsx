@@ -1,9 +1,12 @@
 import { useCallback, useRef, useState, type FormEvent } from "react";
-import { signOut } from "aws-amplify/auth";
 import type { AppConfig } from "../config";
 import { runStreamTurn } from "../stream/streamClient";
 import type { StreamEvent, TranscriptItem } from "../stream/types";
+import { AgentPicker } from "./AgentPicker";
+import { ArchitectureModal } from "./ArchitectureModal";
 import { Disclaimer } from "./Disclaimer";
+import { DEFAULT_LOCAL_AGENT_ID, getLocalAgent } from "./localAgents";
+import { PromptPicker } from "./PromptPicker";
 import { Transcript } from "./Transcript";
 
 type Props = {
@@ -21,7 +24,11 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [archOpen, setArchOpen] = useState(false);
+  const [agentId, setAgentId] = useState(DEFAULT_LOCAL_AGENT_ID);
   const sessionIdRef = useRef<string | null>(null);
+
+  const agentLabel = getLocalAgent(agentId)?.label ?? agentId;
 
   const applyEvent = useCallback((turnId: string, event: StreamEvent) => {
     setItems((prev) =>
@@ -76,6 +83,11 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
             }
             break;
           }
+          case "debug":
+            if (event.debug && typeof event.debug === "object") {
+              next.debug = event.debug;
+            }
+            break;
           case "done":
             next.done = true;
             break;
@@ -113,10 +125,12 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
 
     try {
       const { sessionId } = await runStreamTurn({
+        mode: config.mode,
         streamUrl: config.streamUrl,
         region: config.region,
         message,
         sessionId: sessionIdRef.current,
+        agentId: config.mode === "local" ? agentId : undefined,
         handlers: {
           onEvent: (ev) => applyEvent(turnId, ev),
         },
@@ -155,8 +169,7 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
     void sendMessage(draft);
   }
 
-  async function onSignOut() {
-    await signOut();
+  function onSignOut() {
     sessionIdRef.current = null;
     onSignedOut();
   }
@@ -166,14 +179,58 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
       <header className="chat-header">
         <div>
           <strong>Agentic Target ID</strong>
-          <span className="muted"> · {email}</span>
+          <span className="muted">
+            {" "}
+            · {email}
+            {config.mode === "local" ? ` · local · ${agentLabel}` : ""}
+          </span>
         </div>
-        <button type="button" className="ghost" onClick={() => void onSignOut()}>
+        <button type="button" className="ghost" onClick={onSignOut}>
           Sign out
         </button>
       </header>
 
       <Disclaimer />
+
+      {config.mode === "local" ? (
+        <AgentPicker
+          value={agentId}
+          disabled={busy}
+          onChange={(next) => {
+            if (next === agentId) return;
+            setAgentId(next);
+            sessionIdRef.current = null;
+            setItems([]);
+            setDraft("");
+            setStatus(null);
+          }}
+        />
+      ) : null}
+
+      <PromptPicker
+        agentId={config.mode === "local" ? agentId : DEFAULT_LOCAL_AGENT_ID}
+        disabled={busy}
+        onPick={(prompt) => {
+          setDraft(prompt);
+          setStatus(null);
+        }}
+      />
+
+      <p className="arch-link-row">
+        <button
+          type="button"
+          className="linkish"
+          onClick={() => setArchOpen(true)}
+        >
+          What happens after you enter the prompt below
+        </button>
+      </p>
+
+      <ArchitectureModal
+        open={archOpen}
+        mode={config.mode}
+        onClose={() => setArchOpen(false)}
+      />
 
       <Transcript items={items} />
 
@@ -186,34 +243,12 @@ export function ChatPage({ config, email, onSignedOut }: Props) {
       <form className="composer" onSubmit={onSubmit}>
         <textarea
           rows={3}
-          placeholder="Ask a research question…"
+          placeholder="Ask a research question… or choose an example above"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           disabled={busy}
         />
         <div className="composer-actions">
-          <button
-            type="button"
-            className="ghost"
-            disabled={busy}
-            onClick={() =>
-              void sendMessage("What is the mechanism of action of Herceptin?")
-            }
-          >
-            Demo: mechanism
-          </button>
-          <button
-            type="button"
-            className="ghost"
-            disabled={busy}
-            onClick={() =>
-              void sendMessage(
-                "Which patient populations are most vulnerable to its cardiotoxicity?",
-              )
-            }
-          >
-            Demo: cardiotoxicity
-          </button>
           <button type="submit" disabled={busy || !draft.trim()}>
             {busy ? "Streaming…" : "Send"}
           </button>

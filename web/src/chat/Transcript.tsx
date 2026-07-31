@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { TranscriptItem } from "../stream/types";
+import { WhatHappenedModal, type WhatHappenedTurn } from "./WhatHappenedModal";
 
 function formatIds(ids?: { pmid?: string[]; nct?: string[]; chembl?: string[] }) {
   if (!ids) return "";
@@ -14,10 +16,15 @@ type Props = {
 };
 
 export function Transcript({ items }: Props) {
+  const [happened, setHappened] = useState<WhatHappenedTurn | null>(null);
+
   return (
     <div className="transcript" aria-live="polite">
       {items.length === 0 ? (
-        <p className="muted">Ask a research question to start a Chat Session.</p>
+        <p className="muted">
+          Ask a research question to start a Chat Session — or pick an example
+          from the dropdown above.
+        </p>
       ) : null}
       {items.map((item) => {
         if (item.kind === "user") {
@@ -60,6 +67,30 @@ export function Transcript({ items }: Props) {
               </div>
             ))}
             {item.answer ? <div className="answer">{item.answer}</div> : null}
+
+            {item.done ? (
+              <p className="what-happened-row">
+                <button
+                  type="button"
+                  className="linkish"
+                  onClick={() =>
+                    setHappened({
+                      tools: item.tools,
+                      errors: item.errors,
+                      debug: item.debug,
+                      sessionId: item.sessionId,
+                    })
+                  }
+                >
+                  What happened now
+                </button>
+                <span className="muted small">
+                  {" "}
+                  — Bedrock request, host tools, and proof for this answer
+                </span>
+              </p>
+            ) : null}
+
             {item.stalled ? (
               <div className="error-line">Stream stalled (soft 5-minute timeout).</div>
             ) : null}
@@ -69,6 +100,12 @@ export function Transcript({ items }: Props) {
           </div>
         );
       })}
+
+      <WhatHappenedModal
+        open={happened !== null}
+        turn={happened}
+        onClose={() => setHappened(null)}
+      />
     </div>
   );
 }

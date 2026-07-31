@@ -1,0 +1,24 @@
+{
+  "name": "drug-discovery-agentic-target-identification",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ops scripts for Agentic Target ID (host app + optional Docker deps)",
+  "scripts": {
+    "local:deps:start": "bash CiCd/Local/docker-all-up.sh",
+    "local:deps:stop": "bash CiCd/Local/docker-all-down.sh",
+    "local:deps:status": "bash CiCd/Local/docker-all-status.sh",
+    "local:containers:start-all": "bash CiCd/Local/docker-all-up.sh",
+    "local:containers:stop-all": "bash CiCd/Local/docker-all-down.sh",
+    "local:containers:status-all": "bash CiCd/Local/docker-all-status.sh",
+    "local:env": "bash CiCd/Local/ensure-python-env.sh",
+    "local:stream": "bash CiCd/Local/stream-dev.sh",
+    "local:web": "npm --prefix web run dev -- --host 127.0.0.1 --port 5173",
+    "local:up": "bash CiCd/Local/local-up.sh",
+    "local:stream-and-ui-up": "bash CiCd/Local/local-stream-and-ui-up.sh",
+    "local:stream-and-ui-down": "bash CiCd/Local/local-stream-and-ui-down.sh",
+    "local:down": "bash CiCd/Local/local-down.sh"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -64,12 +64,14 @@ label {
 
 input,
 textarea,
-button {
+button,
+select {
   font: inherit;
 }
 
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--line);
@@ -118,7 +120,208 @@ button.ghost {
   display: grid;
   gap: 0.85rem;
   min-height: calc(100vh - 2.5rem);
-  grid-template-rows: auto auto 1fr auto auto;
+  grid-template-rows: auto auto auto auto auto 1fr auto auto;
+}
+
+.prompt-picker {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.prompt-picker select {
+  max-width: 100%;
+}
+
+.agent-picker .agent-brief {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0.65rem 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.agent-picker .agent-brief p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.arch-link-row {
+  margin: 0;
+}
+
+button.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+button.linkish:hover {
+  opacity: 0.85;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(28, 36, 48, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-panel {
+  width: min(640px, 100%);
+  max-height: min(85vh, 720px);
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  padding: 1rem 1.15rem 1.15rem;
+  display: grid;
+  gap: 0.75rem;
+  box-shadow: 0 12px 40px rgba(28, 36, 48, 0.18);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-family: "IBM Plex Serif", Georgia, serif;
+  line-height: 1.3;
+}
+
+.modal-body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.arch-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.arch-flow {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  background: #eef3f8;
+  border: 1px solid var(--line);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.small {
+  font-size: 0.88rem;
+}
+
+.what-happened-row {
+  margin: 0.35rem 0 0;
+}
+
+.host-definition {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #9bb8a8;
+  background: #eef6f1;
+  font-size: 0.92rem;
+}
+
+.turn-debug-title {
+  margin: 0;
+  font-size: 1rem;
+  font-family: "IBM Plex Serif", Georgia, serif;
+}
+
+.turn-debug-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+  background: #fff;
+}
+
+.badge.ok {
+  border-color: #2f7d57;
+  color: #145c3a;
+  background: #e5f5ec;
+}
+
+.badge.no {
+  border-color: #a05a2c;
+  color: #6b3a14;
+  background: #fff1e6;
+}
+
+.badge.muted-badge {
+  color: var(--muted);
+}
+
+.turn-debug-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 720px) {
+  .turn-debug-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.turn-debug h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+}
+
+.turn-debug ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.mini-pre {
+  margin: 0.25rem 0 0;
+  padding: 0.4rem 0.5rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.turn-debug-raw summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.delta-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .chat-header {

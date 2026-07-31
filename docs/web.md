@@ -36,8 +36,23 @@ python3 stream/scripts/create_cognito_user.py
 
 ## Run locally
 
+### Cost-free local stack (no Cognito / CDK auth)
+
+See **[local-stack.md](./local-stack.md)**. Stream + Vite run on the **host**; Docker is deps-only.
+
+```bash
+# repo root — host Stream on :8787 (optional Docker deps no-op for V1)
+npm run local:up
+npm run local:web
+```
+
+`VITE_STACK_MODE=local` skips Cognito and POSTs plain HTTP to the host Stream.
+
+### AWS path (Cognito + Stream Function URL)
+
 ```bash
 cd web
+cp .env.example .env.local   # fill Auth/Stream Outputs; VITE_STACK_MODE=aws
 npm install
 npm run dev
 ```

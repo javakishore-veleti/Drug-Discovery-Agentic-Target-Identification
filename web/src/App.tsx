@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
-import { getCurrentUser } from "aws-amplify/auth";
+import { getCurrentUser, signOut as amplifySignOut } from "aws-amplify/auth";
 import { configureAmplify } from "./auth/configureAmplify";
 import { LoginForm } from "./auth/LoginForm";
+import {
+  LocalLoginForm,
+  clearLocalDemoUser,
+  readLocalDemoUser,
+} from "./auth/LocalLoginForm";
 import { ChatPage } from "./chat/ChatPage";
 import { resolveAppConfig, type AppConfig } from "./config";
 
@@ -17,6 +22,15 @@ export default function App() {
   useEffect(() => {
     void resolveAppConfig()
       .then((config) => {
+        if (config.mode === "local") {
+          const email = readLocalDemoUser();
+          if (email) {
+            setAuth({ status: "signed_in", config, email });
+          } else {
+            setAuth({ status: "signed_out", config });
+          }
+          return;
+        }
         configureAmplify(config);
         return getCurrentUser()
           .then((user) => {
@@ -47,6 +61,17 @@ export default function App() {
     );
   }
   if (auth.status === "signed_out") {
+    if (auth.config.mode === "local") {
+      return (
+        <main className="center">
+          <LocalLoginForm
+            onSignedIn={(email) =>
+              setAuth({ status: "signed_in", config: auth.config, email })
+            }
+          />
+        </main>
+      );
+    }
     return (
       <main className="center">
         <LoginForm
@@ -69,7 +94,16 @@ export default function App() {
       <ChatPage
         config={auth.config}
         email={auth.email}
-        onSignedOut={() => setAuth({ status: "signed_out", config: auth.config })}
+        onSignedOut={() => {
+          if (auth.config.mode === "local") {
+            clearLocalDemoUser();
+            setAuth({ status: "signed_out", config: auth.config });
+            return;
+          }
+          void amplifySignOut().then(() =>
+            setAuth({ status: "signed_out", config: auth.config }),
+          );
+        }}
       />
     </main>
   );

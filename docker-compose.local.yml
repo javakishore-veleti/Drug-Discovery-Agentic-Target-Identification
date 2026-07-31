@@ -1,0 +1,27 @@
+# Local dependency software ONLY.
+# Application processes run on the host (not in Docker):
+#   - Stream:  npm run local:stream   (local/stream_app.py :8787)
+#   - Web UI:  npm run local:web      (Vite :5173)
+#
+# V1 local mode talks to Bedrock + public APIs (PubMed / CT.gov / ChEMBL) —
+# no Redis/Postgres is required yet. Add infra services below when needed.
+#
+#   npm run local:deps:start
+#   npm run local:up          # host stream
+#   npm run local:web         # host UI
+
+name: agentic-target-id-local-deps
+
+services: {}
+
+# --- Example future dependency (uncomment when you need it) ---
+#   redis:
+#     image: public.ecr.aws/docker/library/redis:7-alpine
+#     container_name: agentic-target-id-redis
+#     ports:
+#       - "6379:6379"
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 5s
+#       timeout: 3s
+#       retries: 5
