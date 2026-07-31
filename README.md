@@ -22,6 +22,7 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 - [BMAD Method (how this repo is specified)](#bmad-method-how-this-repo-is-specified)
 - [Example research turns](#example-research-turns)
 - [What happens after you enter a prompt](#what-happens-after-you-enter-a-prompt)
+- [Local sequence: UI → FastAPI → Bedrock → UI](#local-sequence-ui--fastapi--bedrock--ui)
 - [Why so many agents? Do they have separate brains?](#why-so-many-agents-do-they-have-separate-brains)
 - [Deploy (pilot)](#deploy-pilot)
 - [Security](#security)
@@ -204,6 +205,46 @@ You (Vite :5173)
       → if tool_use: host adapters → PubMed/ChEMBL/OT/CT.gov
       → tool_result back into agent → Bedrock may continue
   → SSE → transcript
+```
+
+### Local sequence: UI → FastAPI → Bedrock → UI
+
+One Send for a **single** local agent (`agentId`). Bedrock never calls PubMed itself; the host runs tools and calls Bedrock again until the model returns a final answer (no further `tool_use`).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as Vite UI<br/>(:5173)
+    participant API as FastAPI Stream<br/>(local/stream_app.py :8787)
+    participant Agent as Strands agent<br/>(one agentId)
+    participant BR as Amazon Bedrock<br/>(Claude)
+    participant Tools as Host tool adapters<br/>(PubMed / CT.gov / ChEMBL / OT)
+
+    User->>UI: Enter prompt + Send
+    UI->>API: POST JSON { message, sessionId?, agentId }
+    API-->>UI: SSE session_started
+
+    API->>Agent: agent(message)
+    Note over Agent: Load/reuse session agent<br/>system prompt for this agentId
+
+    loop Until Bedrock returns text without tool_use
+        Agent->>BR: model.stream(messages + tools schema)
+        BR-->>Agent: assistant turn<br/>(text and/or tool_use)
+        alt Bedrock requested tool_use
+            Agent->>Tools: Run tool(s) on host
+            Tools-->>Agent: tool_result (ids / summary / error)
+            Note over Agent: Append tool_result<br/>to conversation; call Bedrock again
+        else Final answer (no tool_use)
+            Note over Agent: Stop tool loop
+        end
+    end
+
+    Agent-->>API: Final agent result + message history
+    API-->>UI: SSE tool_use / tool_result<br/>(from this turn's history)
+    API-->>UI: SSE token… (answer chunks)
+    API-->>UI: SSE debug (optional) + done
+    UI-->>User: Transcript updated
 ```
 
 ### AWS demo path
