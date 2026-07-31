@@ -264,6 +264,18 @@ button.linkish:hover {
   border: 1px solid #9bb8a8;
   background: #eef6f1;
   font-size: 0.92rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.host-definition p {
+  margin: 0;
+}
+
+.arch-subhead {
+  margin: 0;
+  font-size: 1rem;
+  font-family: "IBM Plex Serif", Georgia, serif;
 }
 
 .turn-debug-title {

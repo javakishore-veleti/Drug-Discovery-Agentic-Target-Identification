@@ -143,6 +143,49 @@ export function ArchitectureModal({ open, mode, onClose }: Props) {
   → SSE → transcript`}
           </pre>
 
+          <section className="host-definition" aria-label="Why many agents">
+            <h3 className="arch-subhead">Why so many agents? Do they have separate brains?</h3>
+            <p>
+              <strong>No.</strong> Every local agent uses the{" "}
+              <strong>same Bedrock model</strong> and the{" "}
+              <strong>same tools</strong> (PubMed / ClinicalTrials / ChEMBL /
+              Open Targets). The “brain” is always Bedrock. What changes per
+              agent is mainly the <strong>system prompt</strong> (domain lens:
+              drug profile vs pathways vs cardioprotection, etc.) — not a
+              different model or a private tool engine.
+            </p>
+            <p>
+              <strong>What the job is (not “just calling tools”):</strong> each
+              turn Bedrock (1) plans, (2) may emit tool instructions for your
+              Mac to look things up, then (3) synthesizes the research answer.
+              Tools only fetch; writing and reasoning are Bedrock.
+            </p>
+            <p>
+              <strong>Where tool calling stops:</strong> there is no hard
+              per-agent tool budget today. The loop stops when Bedrock returns a
+              normal answer <em>without</em> another tool instruction. Broad
+              questions can mean many Bedrock calls (and more cost).
+            </p>
+            <p>
+              <strong>Why keep specialist folders then?</strong> Local
+              experiments and UI demos of Target ID angles (different default
+              framing). Production / AWS path stays{" "}
+              <strong>one Unified Research Agent</strong> — not five cloud
+              brains.
+            </p>
+            {isLocal ? (
+              <p className="muted small">
+                The Research agent dropdown only swaps that prompt lens +
+                example questions. If two agents feel identical, their prompts
+                are too similar — not because each has a separate intelligence.
+              </p>
+            ) : (
+              <p className="muted small">
+                AWS mode ignores the specialist picker and always uses Unified.
+              </p>
+            )}
+          </section>
+
           <p className="muted small">
             “Streaming…” = waiting for the turn. Live IDs only when{" "}
             <code>tool_result</code> is <code>ok</code>. Bedrock cost applies

@@ -8,6 +8,71 @@ Scientists chat in natural language. A single **Unified Research Agent** plans t
 
 **50 persona use cases:** [`USE_CASES.md`](USE_CASES.md) · **agent + App UI prompts (tables):** [`USE_CASES_Agents_AppUI.md`](USE_CASES_Agents_AppUI.md)
 
+## Table of contents
+
+- [Purpose of this repo](#purpose-of-this-repo)
+- [Tech stack](#tech-stack)
+- [Agents (what each one does)](#agents-what-each-one-does)
+- [What is target identification?](#what-is-target-identification)
+- [Problem](#problem)
+- [Why agentic (not a chatbot wrapper)](#why-agentic-not-a-chatbot-wrapper)
+- [Cloud architecture (AWS)](#cloud-architecture-aws)
+- [Stream Events (live functionality)](#stream-events-live-functionality)
+- [What’s shipped (V1 + beyond)](#whats-shipped-v1--beyond)
+- [BMAD Method (how this repo is specified)](#bmad-method-how-this-repo-is-specified)
+- [Example research turns](#example-research-turns)
+- [What happens after you enter a prompt](#what-happens-after-you-enter-a-prompt)
+- [Why so many agents? Do they have separate brains?](#why-so-many-agents-do-they-have-separate-brains)
+- [Deploy (pilot)](#deploy-pilot)
+- [Security](#security)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+## Purpose of this repo
+
+This repository is a **spec-driven pilot** that shows how early Target ID research can run as an **agentic AWS workflow** instead of ad-hoc literature hunting across many tabs.
+
+**What it is trying to resolve**
+
+| Pain today | What this pilot does |
+| --- | --- |
+| Evidence for MoA, trials, chemistry, and target genetics is scattered | One chat session plans tool use across PubMed, ClinicalTrials.gov, ChEMBL, and (optional) Open Targets |
+| “Black box” LLM answers with no live tool trail | Stream Events (`tool_use` / `tool_result` / `token` / `done`) so scientists see what was looked up |
+| Browser talking directly to privileged agent runtimes | Cognito → SigV4 Stream Lambda → AgentCore (AD-1); browser never holds Runtime IAM |
+| Unclear local vs cloud experiment paths | Local host Stream for cheap day-to-day work; AWS path for demos; **production stays one Unified agent** |
+
+**In scope:** research assistance with cited public IDs, multi-turn Chat Sessions, governed Gateway tools, BMAD planning artifacts.  
+**Out of scope:** medical advice, clinical decision support, validated-target ranking, multi-agent cloud swarms.
+
+## Tech stack
+
+| Layer | Stack |
+| --- | --- |
+| **LLM / agent runtime (AWS)** | Amazon Bedrock (Claude) · Bedrock AgentCore Runtime · AgentCore Memory · AgentCore Gateway (MCP tools) |
+| **Stream bridge** | AWS Lambda Function URL (SSE) · SigV4 from Cognito Identity Pool |
+| **Auth / front door** | Amazon Cognito · CloudFront + S3 (React UI) |
+| **IaC / ops** | AWS CDK · CloudWatch (dashboard / alarms / X-Ray / EMF when Ops stack is on) · optional WAF |
+| **Agent code** | Python 3.12 · Strands-style agents · Gateway tool adapters (PubMed / CT.gov / ChEMBL / Open Targets) |
+| **Web UI** | React + Vite · Stream Events transcript |
+| **Local day-to-day** | Host FastAPI Stream (`local/stream_app.py` :8787) · Vite :5173 · host AWS creds for Bedrock only · in-process tools (Gateway MCP off) |
+| **Method** | BMAD Method planning + implementation artifacts (not Kiro) |
+
+## Agents (what each one does)
+
+**Cloud / production path:** only the **Unified Research Agent**.  
+**Local UI:** specialists are the **same Bedrock model + same tools**, with a different **system prompt** (domain lens). They are for experiments and demos—not separate brains.
+
+| Agent | Role / objective | Typical output | Target ID help |
+| --- | --- | --- | --- |
+| **Unified Research Agent** (default) | One production-style agent covering MoA, population risk, pathways, cardiac safety, and design hypotheses | Balanced, cited synthesis (PMID / NCT / ChEMBL; Open Targets when used) | End-to-end Target ID starting point without switching specialists |
+| **Drug Profile Analysis** | MoA, molecular targets, toxicity/AE signals, high-level ADME/PK when public evidence exists | Drug/target profile brief | “Is this the right molecule/target?” — early safety/PK red flags |
+| **Patient Risk Assessment** | Population stratification, biomarkers, vulnerability / AE patterns from literature and trials | Population-risk research memo (not care plans) | “Which patients / contexts matter?” for an indication bet |
+| **Pathway Mapping** | Protein/pathway relationships and network hypotheses (literature-first; no dedicated pathway DB in V1) | Pathway/network framing with honest limits | “Where does this sit in disease biology?” |
+| **Cardioprotection Target** | Cardiac safety / cardiotoxicity and protective-mechanism hypotheses | Cardio-oncology research note (no dosing/monitoring) | “Will this target/therapy carry cardiac risk?” |
+| **Drug Design Hypothesis** | Structure/binding and optimization hypotheses grounded in ChEMBL + literature | Chemistry/design sketch (no invented PDB/docking) | “Is it druggable / how might we modulate it?” |
+| **Genetic Risk Assessment** | Gene/variant context from public literature (V1 has no Ensembl/GWAS Gateway tools) | Genetics-oriented synthesis for scientists (not counseling) | “Is genetics on our side?” for the target–disease link |
+| **Medical Supervisor** (local stubs) | Local experiment router across specialist domains — not a cloud multi-agent Runtime | Routed / multi-domain local exploration | Sandbox multi-angle questions; AWS still uses Unified only |
+
 ## What is target identification?
 
 **Target identification** is a core early-stage **drug discovery** concept.
@@ -114,6 +179,62 @@ This project is a **BMAD** mastery / reference build (spec-driven), not Kiro.
 - Which patient populations are most vulnerable to its cardiotoxicity? *(follow-up, same session)*
 - Use Open Targets to find ERBB2 / HER2 target evidence and cite Ensembl ids *(deploy with `enableTool4=true`)*
 - What ChEMBL context exists for trastuzumab / HER2-targeted agents?
+
+## What happens after you enter a prompt
+
+Same help content as the UI popup (**What happens after you enter the prompt below**).
+
+### Local stack
+
+No Cognito / Stream Lambda / AgentCore Runtime. Host FastAPI Stream + Vite UI; Bedrock is still billable via host AWS credentials.
+
+1. **Browser** — Question POSTed as JSON to Stream at `http://127.0.0.1:8787/`.
+2. **Stream** — `local/stream_app.py` mints or reuses a Chat Session id and loads the UI-selected agent (`agentId`: unified or a local specialist).
+3. **Research agent (Bedrock)** — Host calls **Bedrock (Claude)** (billable). Bedrock may reply with a *tool instruction* (“please run pubmed with this query”) instead of a finished answer. That is **not** Bedrock calling PubMed — it is a message back to the host.
+4. **Tools are not guaranteed every turn** — The model chooses whether to ask for a lookup. Trust the transcript: `tool_result (ok)` means the host ran the tool; if there is none, the answer may be model-only knowledge.
+5. **AWS credentials (Bedrock only)** — Standard chain: `AWS_*` / `AWS_PROFILE`, else `~/.aws/credentials` + `~/.aws/config`, or SSO. Used for Bedrock — not for PubMed/ChEMBL public HTTP. No Cognito Identity Pool in local mode.
+6. **Where tools actually run** — On the **local host process** (in-process adapters). They HTTP-call NCBI, ChEMBL, Open Targets, CT.gov. Gateway MCP is forced off. Not executed “inside Bedrock.”
+7. **SSE events** — Stream returns `session_started`, `tool_use`, `tool_result`, `token`, then `done`. The UI paints each line in the transcript.
+
+```text
+You (Vite :5173)
+  → POST local Stream :8787
+  → Strands agent on host
+      → Bedrock: plan / answer (billable; may emit tool_use)
+      → if tool_use: host adapters → PubMed/ChEMBL/OT/CT.gov
+      → tool_result back into agent → Bedrock may continue
+  → SSE → transcript
+```
+
+### AWS demo path
+
+Cognito → SigV4 → Stream Function URL → AgentCore (unified agent only).
+
+1. **Browser** — Question POSTed to the Stream Function URL.
+2. **Stream** — Lambda authenticates (SigV4) and opens the session (Unified only).
+3. **Research agent (Bedrock)** — AgentCore + Bedrock plan/answer; tool instructions are executed in the AWS agent/runtime path (often Gateway MCP Lambdas), still separate from the Bedrock model call itself.
+4. **AWS credentials** — Browser → Cognito Identity Pool → SigV4 for Stream. Bedrock runs under AWS roles, not laptop `~/.aws`.
+5. **SSE events** — Same event contract as local.
+
+```text
+You (CloudFront or Vite)
+  → Cognito + Identity Pool → SigV4
+  → Stream Function URL
+  → AgentCore + Bedrock (plan/answer)
+  → tools (Gateway/adapters) if model requests them
+  → SSE → transcript
+```
+
+“Streaming…” = waiting for the turn. Live IDs only when `tool_result` is `ok`. Bedrock cost applies whenever the model runs, even if no tools are called.
+
+## Why so many agents? Do they have separate brains?
+
+**No.** Every local agent uses the **same Bedrock model** and the **same tools** (PubMed / ClinicalTrials / ChEMBL / Open Targets). The “brain” is always Bedrock. What changes per agent is mainly the **system prompt** (domain lens: drug profile vs pathways vs cardioprotection, etc.) — not a different model or a private tool engine.
+
+- **What the job is (not “just calling tools”):** each turn Bedrock (1) plans, (2) may emit tool instructions for the host to look things up, then (3) synthesizes the research answer. Tools only fetch; writing and reasoning are Bedrock.
+- **Where tool calling stops:** there is no hard per-agent tool budget today. The loop stops when Bedrock returns a normal answer *without* another tool instruction. Broad questions can mean many Bedrock calls (and more cost).
+- **Why keep specialist folders then?** Local experiments and UI demos of Target ID angles (different default framing). Production / AWS path stays **one Unified Research Agent** — not five cloud brains.
+- Local UI: the Research agent dropdown only swaps that prompt lens + example questions. If two agents feel identical, their prompts are too similar — not because each has a separate intelligence. AWS mode ignores the specialist picker and always uses Unified.
 
 ## Deploy (pilot)
 
